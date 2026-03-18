@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Clientes from "./pages/Clientes";
@@ -17,7 +18,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+      <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
     </div>
   );
   if (!user) return <Navigate to="/login" replace />;
@@ -33,22 +34,24 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-            <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/clientes" element={<ProtectedRoute><Clientes /></ProtectedRoute>} />
-            <Route path="/interacoes" element={<ProtectedRoute><Interacoes /></ProtectedRoute>} />
-            <Route path="/conteudo" element={<ProtectedRoute><ConteudoPage /></ProtectedRoute>} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </AuthProvider>
-    </TooltipProvider>
+    <ThemeProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <AuthProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+              <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/clientes" element={<ProtectedRoute><Clientes /></ProtectedRoute>} />
+              <Route path="/interacoes" element={<ProtectedRoute><Interacoes /></ProtectedRoute>} />
+              <Route path="/conteudo" element={<ProtectedRoute><ConteudoPage /></ProtectedRoute>} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
+      </TooltipProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 

@@ -5,8 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Truck } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import logo from '@/assets/logo-torke.jpeg';
 
 const Login = () => {
   const { signIn, signUp } = useAuth();
@@ -19,16 +20,28 @@ const Login = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!loginEmail || !loginPassword) {
+      toast({ title: 'Preencha todos os campos', variant: 'destructive' });
+      return;
+    }
     setLoading(true);
     const { error } = await signIn(loginEmail, loginPassword);
     if (error) {
-      toast({ title: 'Erro ao entrar', description: error.message, variant: 'destructive' });
+      toast({ title: 'Credenciais inválidas', description: 'Verifique seu email e senha.', variant: 'destructive' });
     }
     setLoading(false);
   };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!signupEmail || !signupPassword) {
+      toast({ title: 'Preencha todos os campos', variant: 'destructive' });
+      return;
+    }
+    if (signupPassword.length < 6) {
+      toast({ title: 'Senha muito curta', description: 'Mínimo de 6 caracteres.', variant: 'destructive' });
+      return;
+    }
     setLoading(true);
     const { error } = await signUp(signupEmail, signupPassword);
     if (error) {
@@ -42,12 +55,10 @@ const Login = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md animate-fade-in">
-        <div className="flex items-center justify-center gap-3 mb-8">
-          <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-            <Truck className="w-6 h-6 text-primary-foreground" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-foreground">AutoParts Pro</h1>
+        <div className="flex flex-col items-center gap-3 mb-8">
+          <img src={logo} alt="Torke 360" className="w-20 h-20 rounded-xl object-contain" />
+          <div className="text-center">
+            <h1 className="text-xl font-bold text-foreground">Torke Assistem</h1>
             <p className="text-xs text-muted-foreground">CRM para autopeças</p>
           </div>
         </div>
