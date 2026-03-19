@@ -7,9 +7,10 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
-import Clientes from "./pages/Clientes";
-import Interacoes from "./pages/Interacoes";
-import ConteudoPage from "./pages/Conteudo";
+import IdeiasPage from "./pages/Ideias";
+import PostsPage from "./pages/Posts";
+import MetricasPage from "./pages/Metricas";
+import RecomendacoesPage from "./pages/Recomendacoes";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -43,9 +44,10 @@ const App = () => (
             <Routes>
               <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
               <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-              <Route path="/clientes" element={<ProtectedRoute><Clientes /></ProtectedRoute>} />
-              <Route path="/interacoes" element={<ProtectedRoute><Interacoes /></ProtectedRoute>} />
-              <Route path="/conteudo" element={<ProtectedRoute><ConteudoPage /></ProtectedRoute>} />
+              <Route path="/ideias" element={<ProtectedRoute><IdeiasPage /></ProtectedRoute>} />
+              <Route path="/posts" element={<ProtectedRoute><PostsPage /></ProtectedRoute>} />
+              <Route path="/metricas" element={<ProtectedRoute><MetricasPage /></ProtectedRoute>} />
+              <Route path="/recomendacoes" element={<ProtectedRoute><RecomendacoesPage /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
