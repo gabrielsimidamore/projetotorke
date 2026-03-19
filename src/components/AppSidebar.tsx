@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, MessageSquare, Lightbulb, LogOut, Sun, Moon } from 'lucide-react';
+import { LayoutDashboard, Lightbulb, FileText, BarChart3, Sparkles, LogOut, Sun, Moon } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -19,9 +19,10 @@ import { Button } from '@/components/ui/button';
 
 const navItems = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
-  { title: 'Clientes', url: '/clientes', icon: Users },
-  { title: 'Interações', url: '/interacoes', icon: MessageSquare },
-  { title: 'Conteúdo', url: '/conteudo', icon: Lightbulb },
+  { title: 'Ideias', url: '/ideias', icon: Lightbulb },
+  { title: 'Posts', url: '/posts', icon: FileText },
+  { title: 'Métricas', url: '/metricas', icon: BarChart3 },
+  { title: 'Recomendações', url: '/recomendacoes', icon: Sparkles },
 ];
 
 export function AppSidebar() {
