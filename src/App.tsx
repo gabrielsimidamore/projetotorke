@@ -7,6 +7,9 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+import Clientes from "./pages/Clientes";
+import Interacoes from "./pages/Interacoes";
+import ProjetosPage from "./pages/Projetos";
 import IdeiasPage from "./pages/Ideias";
 import PostsPage from "./pages/Posts";
 import MetricasPage from "./pages/Metricas";
@@ -44,6 +47,9 @@ const App = () => (
             <Routes>
               <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
               <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/clientes" element={<ProtectedRoute><Clientes /></ProtectedRoute>} />
+              <Route path="/interacoes" element={<ProtectedRoute><Interacoes /></ProtectedRoute>} />
+              <Route path="/projetos" element={<ProtectedRoute><ProjetosPage /></ProtectedRoute>} />
               <Route path="/ideias" element={<ProtectedRoute><IdeiasPage /></ProtectedRoute>} />
               <Route path="/posts" element={<ProtectedRoute><PostsPage /></ProtectedRoute>} />
               <Route path="/metricas" element={<ProtectedRoute><MetricasPage /></ProtectedRoute>} />
