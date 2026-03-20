@@ -1,24 +1,19 @@
-import { LayoutDashboard, Lightbulb, FileText, BarChart3, Sparkles, LogOut, Sun, Moon } from 'lucide-react';
+import { LayoutDashboard, Lightbulb, FileText, BarChart3, Sparkles, LogOut, Sun, Moon, Users, MessageSquare, FolderKanban } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import logo from '@/assets/logo-torke.jpeg';
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarFooter,
-  useSidebar,
+  Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
+  SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarFooter, useSidebar,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 
 const navItems = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
+  { title: 'Clientes', url: '/clientes', icon: Users },
+  { title: 'Interações', url: '/interacoes', icon: MessageSquare },
+  { title: 'Projetos', url: '/projetos', icon: FolderKanban },
   { title: 'Ideias', url: '/ideias', icon: Lightbulb },
   { title: 'Posts', url: '/posts', icon: FileText },
   { title: 'Métricas', url: '/metricas', icon: BarChart3 },
@@ -36,7 +31,7 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarGroup>
           <div className="flex items-center gap-3 px-3 py-4">
-            <img src={logo} alt="Torke 360" className="w-8 h-8 rounded-lg object-contain shrink-0" />
+            <img src={logo} alt="Torke Assistem" className="w-8 h-8 rounded-lg object-contain shrink-0" />
             {!collapsed && (
               <div className="overflow-hidden">
                 <p className="text-sm font-bold text-sidebar-foreground truncate">Torke Assistem</p>
@@ -55,12 +50,7 @@ export function AppSidebar() {
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      end={item.url === '/'}
-                      className="hover:bg-sidebar-accent"
-                      activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
-                    >
+                    <NavLink to={item.url} end={item.url === '/'} className="hover:bg-sidebar-accent" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
                       <item.icon className="w-4 h-4 mr-2 shrink-0" />
                       {!collapsed && <span>{item.title}</span>}
                     </NavLink>
@@ -73,26 +63,13 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border p-3 space-y-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={toggleTheme}
-          className="w-full justify-start text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent"
-        >
+        <Button variant="ghost" size="sm" onClick={toggleTheme} className="w-full justify-start text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent">
           {theme === 'light' ? <Moon className="w-4 h-4 mr-2" /> : <Sun className="w-4 h-4 mr-2" />}
           {!collapsed && (theme === 'light' ? 'Modo Escuro' : 'Modo Claro')}
         </Button>
-        {!collapsed && user && (
-          <p className="text-xs text-sidebar-muted truncate">{user.email}</p>
-        )}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={signOut}
-          className="w-full justify-start text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent"
-        >
-          <LogOut className="w-4 h-4 mr-2" />
-          {!collapsed && 'Sair'}
+        {!collapsed && user && <p className="text-xs text-sidebar-muted truncate">{user.email}</p>}
+        <Button variant="ghost" size="sm" onClick={signOut} className="w-full justify-start text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent">
+          <LogOut className="w-4 h-4 mr-2" />{!collapsed && 'Sair'}
         </Button>
       </SidebarFooter>
     </Sidebar>

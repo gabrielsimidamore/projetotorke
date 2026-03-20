@@ -5,7 +5,7 @@ const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// ---- Tipos antigos (CRM) ----
+// ---- Tipos CRM ----
 export type Cliente = {
   id: string;
   nome: string;
@@ -13,17 +13,23 @@ export type Cliente = {
   telefone: string;
   email: string;
   segmento: string;
+  cargo?: string;
+  cidade?: string;
+  estado?: string;
+  cnpj?: string;
+  observacoes?: string;
+  status?: string;
   created_at: string;
 };
 
 export type Interacao = {
   id: string;
   cliente_id: string;
-  canal: 'email' | 'whatsapp' | 'linkedin';
+  canal: 'email' | 'whatsapp' | 'linkedin' | 'ligacao' | 'presencial' | 'instagram';
   mensagem: string;
-  status: 'respondido' | 'pendente';
+  status: 'respondido' | 'pendente' | 'aberto' | 'resolvido' | 'aguardando';
   data_interacao: string;
-  clientes?: Cliente;
+  clientes?: { nome: string; empresa: string };
 };
 
 export type IdeiaConteudo = {
@@ -44,7 +50,7 @@ export type Conteudo = {
   ideias_conteudo?: IdeiaConteudo;
 };
 
-// ---- Tipos novos (LinkedIn Automation) ----
+// ---- Tipos LinkedIn Automation ----
 export type Ideia = {
   id: number;
   data_cadastro: string;
@@ -53,6 +59,8 @@ export type Ideia = {
   observacoes: string | null;
   status: 'Pendente' | 'Em uso' | 'Usado' | 'Rejeitado';
   data_uso: string | null;
+  plataforma?: string;
+  data_postagem?: string | null;
   created_at: string;
 };
 
@@ -129,6 +137,22 @@ export type Rejeitado = {
   created_at: string;
 };
 
+export type Projeto = {
+  id: string;
+  nome: string;
+  cliente_id: string | null;
+  valor_estimado: number | null;
+  data_fechamento_prevista: string | null;
+  responsavel: string | null;
+  descricao: string | null;
+  status: 'prospeccao' | 'proposta_enviada' | 'em_negociacao' | 'aprovado' | 'em_execucao' | 'concluido' | 'perdido';
+  motivo_perda: string | null;
+  ordem: number;
+  created_at: string;
+  updated_at: string;
+  clientes?: { nome: string; empresa: string };
+};
+
 export type VwDashboard = {
   post_id: string;
   assunto: string;
@@ -147,4 +171,14 @@ export type VwDashboard = {
   data_post: string | null;
   horario: string | null;
   padroes_identificados: string | null;
+};
+
+export type Atividade = {
+  id: string;
+  entidade_tipo: string;
+  entidade_id: string;
+  acao: string;
+  descricao: string | null;
+  usuario_email: string | null;
+  created_at: string;
 };

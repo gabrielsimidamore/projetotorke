@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import Layout from '@/components/Layout';
 import { supabase, type Interacao, type Cliente } from '@/lib/supabase';
 import { Card, CardContent } from '@/components/ui/card';
@@ -8,8 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Mail, Phone, Linkedin, Loader2 } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Plus, Mail, Phone, Linkedin, Loader2, Search, Instagram, PhoneCall, UserCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const Interacoes = () => {
@@ -19,7 +19,10 @@ const Interacoes = () => {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ cliente_id: '', canal: 'email' as string, mensagem: '', status: 'pendente' as string });
+  const [search, setSearch] = useState('');
+  const [canalFilter, setCanalFilter] = useState('todos');
+  const [statusFilter, setStatusFilter] = useState('todos');
+  const [form, setForm] = useState({ cliente_id: '', canal: 'whatsapp', mensagem: '', status: 'aberto' });
 
   const fetchData = async () => {
     const [i, c] = await Promise.all([
@@ -38,39 +41,37 @@ const Interacoes = () => {
     setSaving(true);
     const { error } = await supabase.from('interacoes').insert({ ...form, data_interacao: new Date().toISOString() });
     if (error) toast({ title: 'Erro', description: error.message, variant: 'destructive' });
-    else { toast({ title: 'Interação registrada!' }); setDialogOpen(false); setForm({ cliente_id: '', canal: 'email', mensagem: '', status: 'pendente' }); fetchData(); }
+    else { toast({ title: 'Interação registrada!' }); setDialogOpen(false); setForm({ cliente_id: '', canal: 'whatsapp', mensagem: '', status: 'aberto' }); fetchData(); }
     setSaving(false);
   };
 
   const channelIcon = (canal: string) => {
-    if (canal === 'email') return <Mail className="w-4 h-4 text-accent" />;
-    if (canal === 'whatsapp') return <Phone className="w-4 h-4 text-success" />;
-    return <Linkedin className="w-4 h-4 text-primary" />;
+    if (canal === 'email') return <Mail className="w-3.5 h-3.5 text-accent" />;
+    if (canal === 'whatsapp') return <Phone className="w-3.5 h-3.5 text-emerald-500" />;
+    if (canal === 'linkedin') return <Linkedin className="w-3.5 h-3.5 text-blue-500" />;
+    if (canal === 'instagram') return <Instagram className="w-3.5 h-3.5 text-pink-500" />;
+    if (canal === 'ligacao') return <PhoneCall className="w-3.5 h-3.5 text-primary" />;
+    return <UserCheck className="w-3.5 h-3.5 text-foreground" />;
   };
 
-  const renderList = (items: Interacao[]) => {
-    if (items.length === 0) return <p className="text-center py-12 text-muted-foreground">Nenhuma interação</p>;
-    return (
-      <div className="space-y-3">
-        {items.map(int => (
-          <div key={int.id} className="p-4 rounded-md bg-card border border-border hover:bg-muted/30 transition-colors">
-            <div className="flex items-start gap-3">
-              <div className="mt-0.5">{channelIcon(int.canal)}</div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-medium text-foreground">{(int as any).clientes?.nome ?? 'Cliente'}</span>
-                  <span className="text-xs text-muted-foreground">{(int as any).clientes?.empresa}</span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ml-auto ${int.status === 'pendente' ? 'status-pending' : 'status-approved'}`}>{int.status}</span>
-                </div>
-                <p className="text-sm text-muted-foreground mt-1">{int.mensagem}</p>
-                <p className="text-xs text-muted-foreground mt-2">{new Date(int.data_interacao).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
+  const statusBadge = (s: string) => {
+    if (s === 'pendente' || s === 'aberto') return 'status-pending';
+    if (s === 'respondido' || s === 'resolvido') return 'status-approved';
+    return 'bg-blue-500/15 text-blue-500 border border-blue-500/30';
   };
+
+  const filtered = useMemo(() => {
+    return interacoes.filter(i => {
+      const matchSearch = !search || [
+        (i as any).clientes?.nome,
+        (i as any).clientes?.empresa,
+        i.mensagem,
+      ].some(f => f?.toLowerCase().includes(search.toLowerCase()));
+      const matchCanal = canalFilter === 'todos' || i.canal === canalFilter;
+      const matchStatus = statusFilter === 'todos' || i.status === statusFilter;
+      return matchSearch && matchCanal && matchStatus;
+    });
+  }, [interacoes, search, canalFilter, statusFilter]);
 
   return (
     <Layout>
@@ -78,7 +79,7 @@ const Interacoes = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Interações</h1>
-            <p className="text-sm text-muted-foreground">{interacoes.length} interações registradas</p>
+            <p className="text-sm text-muted-foreground">{filtered.length} interações</p>
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
@@ -102,8 +103,11 @@ const Interacoes = () => {
                     <Select value={form.canal} onValueChange={v => setForm({ ...form, canal: v })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="email">Email</SelectItem>
                         <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                        <SelectItem value="email">Email</SelectItem>
+                        <SelectItem value="ligacao">Ligação</SelectItem>
+                        <SelectItem value="presencial">Presencial</SelectItem>
+                        <SelectItem value="instagram">Instagram</SelectItem>
                         <SelectItem value="linkedin">LinkedIn</SelectItem>
                       </SelectContent>
                     </Select>
@@ -113,8 +117,9 @@ const Interacoes = () => {
                     <Select value={form.status} onValueChange={v => setForm({ ...form, status: v })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="pendente">Pendente</SelectItem>
-                        <SelectItem value="respondido">Respondido</SelectItem>
+                        <SelectItem value="aberto">Aberto</SelectItem>
+                        <SelectItem value="resolvido">Resolvido</SelectItem>
+                        <SelectItem value="aguardando">Aguardando</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -131,21 +136,77 @@ const Interacoes = () => {
           </Dialog>
         </div>
 
+        {/* Filters */}
+        <div className="flex flex-wrap gap-3">
+          <div className="relative flex-1 min-w-[200px] max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input placeholder="Buscar cliente ou mensagem..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+          </div>
+          <Select value={canalFilter} onValueChange={setCanalFilter}>
+            <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos canais</SelectItem>
+              <SelectItem value="whatsapp">WhatsApp</SelectItem>
+              <SelectItem value="email">Email</SelectItem>
+              <SelectItem value="ligacao">Ligação</SelectItem>
+              <SelectItem value="presencial">Presencial</SelectItem>
+              <SelectItem value="instagram">Instagram</SelectItem>
+              <SelectItem value="linkedin">LinkedIn</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos status</SelectItem>
+              <SelectItem value="aberto">Aberto</SelectItem>
+              <SelectItem value="resolvido">Resolvido</SelectItem>
+              <SelectItem value="aguardando">Aguardando</SelectItem>
+              <SelectItem value="pendente">Pendente</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
         {loading ? (
           <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
         ) : (
-          <Tabs defaultValue="todos">
-            <TabsList>
-              <TabsTrigger value="todos">Todos ({interacoes.length})</TabsTrigger>
-              <TabsTrigger value="email">Email ({interacoes.filter(i => i.canal === 'email').length})</TabsTrigger>
-              <TabsTrigger value="whatsapp">WhatsApp ({interacoes.filter(i => i.canal === 'whatsapp').length})</TabsTrigger>
-              <TabsTrigger value="linkedin">LinkedIn ({interacoes.filter(i => i.canal === 'linkedin').length})</TabsTrigger>
-            </TabsList>
-            <TabsContent value="todos" className="mt-4">{renderList(interacoes)}</TabsContent>
-            <TabsContent value="email" className="mt-4">{renderList(interacoes.filter(i => i.canal === 'email'))}</TabsContent>
-            <TabsContent value="whatsapp" className="mt-4">{renderList(interacoes.filter(i => i.canal === 'whatsapp'))}</TabsContent>
-            <TabsContent value="linkedin" className="mt-4">{renderList(interacoes.filter(i => i.canal === 'linkedin'))}</TabsContent>
-          </Tabs>
+          <Card>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-10">Canal</TableHead>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead className="hidden md:table-cell">Mensagem</TableHead>
+                    <TableHead className="hidden sm:table-cell">Data</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map(int => (
+                    <TableRow key={int.id} className="hover:bg-muted/50 transition-colors">
+                      <TableCell>{channelIcon(int.canal)}</TableCell>
+                      <TableCell>
+                        <p className="text-sm font-medium text-foreground">{(int as any).clientes?.nome ?? '—'}</p>
+                        <p className="text-xs text-muted-foreground">{(int as any).clientes?.empresa}</p>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell max-w-[300px]">
+                        <p className="text-sm text-muted-foreground truncate">{int.mensagem}</p>
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell text-xs text-muted-foreground">
+                        {new Date(int.data_interacao).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                      </TableCell>
+                      <TableCell>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${statusBadge(int.status)}`}>{int.status}</span>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {filtered.length === 0 && (
+                    <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Nenhuma interação encontrada</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
         )}
       </div>
     </Layout>
