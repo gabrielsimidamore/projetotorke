@@ -13,7 +13,6 @@ const Layout = ({ children }: LayoutProps) => {
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          {/* Topbar */}
           <header
             className="h-11 flex items-center justify-between px-4 shrink-0"
             style={{
@@ -38,8 +37,6 @@ const Layout = ({ children }: LayoutProps) => {
               <Notifications />
             </div>
           </header>
-
-          {/* Content */}
           <main className="flex-1 overflow-auto p-5">
             {children}
           </main>
