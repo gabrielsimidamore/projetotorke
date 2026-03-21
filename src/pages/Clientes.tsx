@@ -1,7 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import Layout from '@/components/Layout';
 import { supabase, type Cliente, type Interacao } from '@/lib/supabase';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,13 +8,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Search, Eye, Pencil, Trash2, Loader2, Mail, Phone, Linkedin, Users, TrendingUp, Download, ArrowUpDown, Instagram, PhoneCall, UserCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const avatarColor = (name: string) => {
-  const colors = ['bg-primary', 'bg-blue-600', 'bg-emerald-600', 'bg-purple-600', 'bg-rose-600', 'bg-orange-600'];
+  const colors = ['#F5C518', '#5b8dee', '#22c55e', '#a855f7', '#ef4444', '#06b6d4'];
   let hash = 0;
   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
   return colors[Math.abs(hash) % colors.length];
@@ -146,72 +144,64 @@ const Clientes = () => {
   };
 
   const channelIcon = (canal: string) => {
-    if (canal === 'email') return <Mail className="w-3 h-3 text-accent" />;
-    if (canal === 'whatsapp') return <Phone className="w-3 h-3 text-emerald-500" />;
-    if (canal === 'linkedin') return <Linkedin className="w-3 h-3 text-blue-500" />;
-    if (canal === 'instagram') return <Instagram className="w-3 h-3 text-pink-500" />;
-    if (canal === 'ligacao') return <PhoneCall className="w-3 h-3 text-primary" />;
-    return <UserCheck className="w-3 h-3 text-foreground" />;
+    if (canal === 'email') return <Mail className="w-3 h-3" style={{ color: '#F5C518' }} />;
+    if (canal === 'whatsapp') return <Phone className="w-3 h-3" style={{ color: '#22c55e' }} />;
+    if (canal === 'linkedin') return <Linkedin className="w-3 h-3" style={{ color: '#5b8dee' }} />;
+    if (canal === 'instagram') return <Instagram className="w-3 h-3" style={{ color: '#e1306c' }} />;
+    if (canal === 'ligacao') return <PhoneCall className="w-3 h-3" style={{ color: '#a855f7' }} />;
+    return <UserCheck className="w-3 h-3" style={{ color: '#06b6d4' }} />;
   };
 
   const activeClients = clientes.filter(c => (c.status ?? 'ativo') === 'ativo').length;
 
-  const kpis = [
-    { title: 'Total Clientes', value: clientes.length, icon: Users },
-    { title: 'Ativos', value: activeClients, icon: TrendingUp },
-  ];
-
   return (
     <Layout>
-      <div className="space-y-6 animate-fade-in">
+      <div className="space-y-5 animate-fade-in">
         {/* KPI Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {kpis.map(k => (
-            <div key={k.title} className="kpi-card">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{k.title}</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">{k.value}</p>
-                </div>
-                <k.icon className="w-7 h-7 text-primary opacity-70" />
-              </div>
-            </div>
-          ))}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 animate-stagger">
+          <div className="kpi-card glass-accent">
+            <span className="section-label mb-0">Total Clientes</span>
+            <p className="text-2xl font-bold text-white mt-1">{clientes.length}</p>
+          </div>
+          <div className="kpi-card glass-green">
+            <span className="section-label mb-0">Ativos</span>
+            <p className="text-2xl font-bold text-white mt-1">{activeClients}</p>
+          </div>
         </div>
 
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Clientes</h1>
-            <p className="text-sm text-muted-foreground">{filtered.length} clientes encontrados</p>
+            <h1 className="text-lg font-bold text-white">Clientes</h1>
+            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{filtered.length} clientes encontrados</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={exportCSV}>
-              <Download className="w-4 h-4 mr-2" />CSV
+            <Button variant="ghost" size="sm" onClick={exportCSV} className="h-8 text-xs gap-1.5" style={{ border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}>
+              <Download className="w-3.5 h-3.5" />CSV
             </Button>
             <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setEditing(null); setForm({ nome: '', empresa: '', telefone: '', email: '', segmento: '', cargo: '', cidade: '', estado: '', cnpj: '', observacoes: '' }); } }}>
               <DialogTrigger asChild>
-                <Button><Plus className="w-4 h-4 mr-2" />Novo Cliente</Button>
+                <Button size="sm" className="h-8 text-xs gap-1.5"><Plus className="w-3.5 h-3.5" />Novo Cliente</Button>
               </DialogTrigger>
               <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle>{editing ? 'Editar Cliente' : 'Novo Cliente'}</DialogTitle>
+                  <DialogTitle className="text-sm">{editing ? 'Editar Cliente' : 'Novo Cliente'}</DialogTitle>
                 </DialogHeader>
-                <form onSubmit={handleSave} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2 col-span-2"><Label>Nome</Label><Input value={form.nome} onChange={e => setForm({ ...form, nome: e.target.value })} required /></div>
-                    <div className="space-y-2"><Label>Empresa</Label><Input value={form.empresa} onChange={e => setForm({ ...form, empresa: e.target.value })} required /></div>
-                    <div className="space-y-2"><Label>Cargo</Label><Input value={form.cargo} onChange={e => setForm({ ...form, cargo: e.target.value })} /></div>
-                    <div className="space-y-2"><Label>Telefone</Label><Input value={form.telefone} onChange={e => setForm({ ...form, telefone: e.target.value })} /></div>
-                    <div className="space-y-2"><Label>Email</Label><Input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
-                    <div className="space-y-2"><Label>CNPJ</Label><Input value={form.cnpj} onChange={e => setForm({ ...form, cnpj: e.target.value })} /></div>
-                    <div className="space-y-2"><Label>Segmento</Label><Input value={form.segmento} onChange={e => setForm({ ...form, segmento: e.target.value })} /></div>
-                    <div className="space-y-2"><Label>Cidade</Label><Input value={form.cidade} onChange={e => setForm({ ...form, cidade: e.target.value })} /></div>
-                    <div className="space-y-2"><Label>Estado</Label><Input value={form.estado} onChange={e => setForm({ ...form, estado: e.target.value })} /></div>
+                <form onSubmit={handleSave} className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5 col-span-2"><Label className="text-xs">Nome</Label><Input value={form.nome} onChange={e => setForm({ ...form, nome: e.target.value })} required className="h-8 text-xs" /></div>
+                    <div className="space-y-1.5"><Label className="text-xs">Empresa</Label><Input value={form.empresa} onChange={e => setForm({ ...form, empresa: e.target.value })} required className="h-8 text-xs" /></div>
+                    <div className="space-y-1.5"><Label className="text-xs">Cargo</Label><Input value={form.cargo} onChange={e => setForm({ ...form, cargo: e.target.value })} className="h-8 text-xs" /></div>
+                    <div className="space-y-1.5"><Label className="text-xs">Telefone</Label><Input value={form.telefone} onChange={e => setForm({ ...form, telefone: e.target.value })} className="h-8 text-xs" /></div>
+                    <div className="space-y-1.5"><Label className="text-xs">Email</Label><Input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className="h-8 text-xs" /></div>
+                    <div className="space-y-1.5"><Label className="text-xs">CNPJ</Label><Input value={form.cnpj} onChange={e => setForm({ ...form, cnpj: e.target.value })} className="h-8 text-xs" /></div>
+                    <div className="space-y-1.5"><Label className="text-xs">Segmento</Label><Input value={form.segmento} onChange={e => setForm({ ...form, segmento: e.target.value })} className="h-8 text-xs" /></div>
+                    <div className="space-y-1.5"><Label className="text-xs">Cidade</Label><Input value={form.cidade} onChange={e => setForm({ ...form, cidade: e.target.value })} className="h-8 text-xs" /></div>
+                    <div className="space-y-1.5"><Label className="text-xs">Estado</Label><Input value={form.estado} onChange={e => setForm({ ...form, estado: e.target.value })} className="h-8 text-xs" /></div>
                   </div>
-                  <div className="space-y-2"><Label>Observações</Label><Textarea value={form.observacoes} onChange={e => setForm({ ...form, observacoes: e.target.value })} rows={3} /></div>
-                  <Button type="submit" className="w-full" disabled={saving}>
-                    {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}{editing ? 'Salvar' : 'Criar'}
+                  <div className="space-y-1.5"><Label className="text-xs">Observações</Label><Textarea value={form.observacoes} onChange={e => setForm({ ...form, observacoes: e.target.value })} rows={3} className="text-xs" /></div>
+                  <Button type="submit" className="w-full h-8 text-xs" disabled={saving}>
+                    {saving && <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />}{editing ? 'Salvar' : 'Criar'}
                   </Button>
                 </form>
               </DialogContent>
@@ -220,97 +210,96 @@ const Clientes = () => {
         </div>
 
         {/* Filters */}
-        <div className="flex flex-wrap gap-3">
-          <div className="relative flex-1 min-w-[200px] max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input placeholder="Buscar..." value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} className="pl-9" />
+        <div className="flex flex-wrap gap-2">
+          <div className="relative flex-1 min-w-[180px] max-w-xs">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+            <Input placeholder="Buscar..." value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} className="pl-8 h-7 text-xs" style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' }} />
           </div>
           <Select value={segmentoFilter} onValueChange={v => { setSegmentoFilter(v); setPage(0); }}>
-            <SelectTrigger className="w-[160px]"><SelectValue placeholder="Segmento" /></SelectTrigger>
+            <SelectTrigger className="w-[140px] h-7 text-xs" style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' }}><SelectValue placeholder="Segmento" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="todos">Todos segmentos</SelectItem>
-              {segmentos.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              <SelectItem value="todos" className="text-xs">Todos segmentos</SelectItem>
+              {segmentos.map(s => <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={v => { setStatusFilter(v); setPage(0); }}>
-            <SelectTrigger className="w-[140px]"><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectTrigger className="w-[120px] h-7 text-xs" style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' }}><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="todos">Todos</SelectItem>
-              <SelectItem value="ativo">Ativos</SelectItem>
-              <SelectItem value="inativo">Inativos</SelectItem>
+              <SelectItem value="todos" className="text-xs">Todos</SelectItem>
+              <SelectItem value="ativo" className="text-xs">Ativos</SelectItem>
+              <SelectItem value="inativo" className="text-xs">Inativos</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         {/* Table */}
         {loading ? (
-          <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
+          <div className="flex justify-center py-12"><Loader2 className="w-5 h-5 animate-spin text-white/30" /></div>
         ) : (
           <>
-            <Card>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-10"></TableHead>
-                      <TableHead className="cursor-pointer" onClick={() => toggleSort('nome')}>
-                        <span className="flex items-center gap-1">Nome <ArrowUpDown className="w-3 h-3" /></span>
-                      </TableHead>
-                      <TableHead className="hidden sm:table-cell cursor-pointer" onClick={() => toggleSort('empresa')}>
-                        <span className="flex items-center gap-1">Empresa <ArrowUpDown className="w-3 h-3" /></span>
-                      </TableHead>
-                      <TableHead className="hidden lg:table-cell">Segmento</TableHead>
-                      <TableHead className="hidden md:table-cell">Telefone</TableHead>
-                      <TableHead className="hidden md:table-cell">Email</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+            <div className="glass-card overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full dense-table">
+                  <thead>
+                    <tr>
+                      <th className="w-10"></th>
+                      <th className="text-left cursor-pointer" onClick={() => toggleSort('nome')}>
+                        <span className="flex items-center gap-1">Nome <ArrowUpDown className="w-2.5 h-2.5" /></span>
+                      </th>
+                      <th className="text-left hidden sm:table-cell cursor-pointer" onClick={() => toggleSort('empresa')}>
+                        <span className="flex items-center gap-1">Empresa <ArrowUpDown className="w-2.5 h-2.5" /></span>
+                      </th>
+                      <th className="text-left hidden lg:table-cell">Segmento</th>
+                      <th className="text-left hidden md:table-cell">Telefone</th>
+                      <th className="text-left hidden md:table-cell">Email</th>
+                      <th className="text-right">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
                     {paginated.map(c => (
-                      <TableRow key={c.id} className="hover:bg-muted/50 transition-colors">
-                        <TableCell>
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white ${avatarColor(c.nome)}`}>
+                      <tr key={c.id}>
+                        <td>
+                          <div className="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold text-white/90" style={{ background: `${avatarColor(c.nome)}20`, border: `1px solid ${avatarColor(c.nome)}30` }}>
                             {initials(c.nome)}
                           </div>
-                        </TableCell>
-                        <TableCell className="font-medium">{c.nome}</TableCell>
-                        <TableCell className="hidden sm:table-cell text-muted-foreground">{c.empresa}</TableCell>
-                        <TableCell className="hidden lg:table-cell">
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{c.segmento}</span>
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell">
+                        </td>
+                        <td><span className="text-white/80 font-medium">{c.nome}</span></td>
+                        <td className="hidden sm:table-cell text-white/50">{c.empresa}</td>
+                        <td className="hidden lg:table-cell">
+                          {c.segmento && <span className="status-blue">{c.segmento}</span>}
+                        </td>
+                        <td className="hidden md:table-cell">
                           {c.telefone && (
-                            <a href={`https://wa.me/55${c.telefone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="text-sm text-emerald-500 hover:underline">
+                            <a href={`https://wa.me/55${c.telefone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: '#22c55e' }} className="hover:underline">
                               {c.telefone}
                             </a>
                           )}
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell">
-                          {c.email && <a href={`mailto:${c.email}`} className="text-sm text-primary hover:underline">{c.email}</a>}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-1">
-                            <Button variant="ghost" size="icon" onClick={() => handleView(c)}><Eye className="w-4 h-4" /></Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleEdit(c)}><Pencil className="w-4 h-4" /></Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleDelete(c.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                        </td>
+                        <td className="hidden md:table-cell">
+                          {c.email && <a href={`mailto:${c.email}`} style={{ fontSize: 12, color: '#F5C518' }} className="hover:underline">{c.email}</a>}
+                        </td>
+                        <td className="text-right">
+                          <div className="flex justify-end gap-0.5">
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleView(c)}><Eye className="w-3.5 h-3.5 text-white/40" /></Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(c)}><Pencil className="w-3.5 h-3.5 text-white/40" /></Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(c.id)}><Trash2 className="w-3.5 h-3.5 text-red-400/60" /></Button>
                           </div>
-                        </TableCell>
-                      </TableRow>
+                        </td>
+                      </tr>
                     ))}
                     {paginated.length === 0 && (
-                      <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhum cliente encontrado</TableCell></TableRow>
+                      <tr><td colSpan={7} style={{ textAlign: 'center', padding: '32px 0', color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>Nenhum cliente encontrado</td></tr>
                     )}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+                  </tbody>
+                </table>
+              </div>
+            </div>
 
-            {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex items-center justify-center gap-2">
-                <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>Anterior</Button>
-                <span className="text-sm text-muted-foreground">{page + 1} de {totalPages}</span>
-                <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>Próxima</Button>
+                <Button variant="ghost" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)} className="h-7 text-xs" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>Anterior</Button>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{page + 1} de {totalPages}</span>
+                <Button variant="ghost" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)} className="h-7 text-xs" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>Próxima</Button>
               </div>
             )}
           </>
@@ -318,15 +307,15 @@ const Clientes = () => {
 
         {/* Client Drawer */}
         <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-          <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
+          <SheetContent className="w-full sm:max-w-xl overflow-y-auto" style={{ background: 'rgba(10,10,25,0.95)', backdropFilter: 'blur(24px)', borderLeft: '1px solid rgba(255,255,255,0.08)' }}>
             <SheetHeader>
-              <SheetTitle className="flex items-center gap-3">
+              <SheetTitle className="flex items-center gap-3 text-sm">
                 {selectedCliente && (
                   <>
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white ${avatarColor(selectedCliente.nome)}`}>
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold text-white/90" style={{ background: `${avatarColor(selectedCliente.nome)}20`, border: `1px solid ${avatarColor(selectedCliente.nome)}30` }}>
                       {initials(selectedCliente.nome)}
                     </div>
-                    {selectedCliente.nome}
+                    <span className="text-white">{selectedCliente.nome}</span>
                   </>
                 )}
               </SheetTitle>
@@ -334,13 +323,13 @@ const Clientes = () => {
             {selectedCliente && (
               <Tabs defaultValue="dados" className="mt-6">
                 <TabsList className="w-full">
-                  <TabsTrigger value="dados" className="flex-1">Dados</TabsTrigger>
-                  <TabsTrigger value="interacoes" className="flex-1">Interações</TabsTrigger>
-                  <TabsTrigger value="timeline" className="flex-1">Timeline</TabsTrigger>
+                  <TabsTrigger value="dados" className="flex-1 text-xs">Dados</TabsTrigger>
+                  <TabsTrigger value="interacoes" className="flex-1 text-xs">Interações</TabsTrigger>
+                  <TabsTrigger value="timeline" className="flex-1 text-xs">Timeline</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="dados" className="mt-4 space-y-3">
-                  <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="grid grid-cols-2 gap-3">
                     {[
                       ['Empresa', selectedCliente.empresa],
                       ['Cargo', selectedCliente.cargo],
@@ -351,66 +340,63 @@ const Clientes = () => {
                       ['Cidade', selectedCliente.cidade],
                       ['Estado', selectedCliente.estado],
                     ].map(([label, val]) => val && (
-                      <div key={label}>
-                        <p className="text-xs text-muted-foreground">{label}</p>
-                        <p className="text-foreground">{val}</p>
+                      <div key={label} className="p-2.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                        <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginBottom: 2 }}>{label}</p>
+                        <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)' }}>{val}</p>
                       </div>
                     ))}
                   </div>
                   {selectedCliente.observacoes && (
-                    <div>
-                      <p className="text-xs text-muted-foreground">Observações</p>
-                      <p className="text-sm text-foreground">{selectedCliente.observacoes}</p>
+                    <div className="p-2.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                      <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginBottom: 2 }}>Observações</p>
+                      <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>{selectedCliente.observacoes}</p>
                     </div>
                   )}
                 </TabsContent>
 
                 <TabsContent value="interacoes" className="mt-4 space-y-4">
-                  {/* New interaction form */}
-                  <Card>
-                    <CardContent className="p-4 space-y-3">
-                      <p className="text-sm font-semibold text-foreground">Registrar Interação</p>
-                      <div className="flex gap-2">
-                        <Select value={newInteracao.canal} onValueChange={v => setNewInteracao({ ...newInteracao, canal: v })}>
-                          <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                            <SelectItem value="email">Email</SelectItem>
-                            <SelectItem value="ligacao">Ligação</SelectItem>
-                            <SelectItem value="presencial">Presencial</SelectItem>
-                            <SelectItem value="instagram">Instagram</SelectItem>
-                            <SelectItem value="linkedin">LinkedIn</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Select value={newInteracao.status} onValueChange={v => setNewInteracao({ ...newInteracao, status: v })}>
-                          <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="aberto">Aberto</SelectItem>
-                            <SelectItem value="resolvido">Resolvido</SelectItem>
-                            <SelectItem value="aguardando">Aguardando</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <Textarea placeholder="Mensagem..." value={newInteracao.mensagem} onChange={e => setNewInteracao({ ...newInteracao, mensagem: e.target.value })} rows={2} />
-                      <Button size="sm" onClick={handleSaveInteracao} disabled={savingInteracao || !newInteracao.mensagem.trim()}>
-                        {savingInteracao && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}Registrar
-                      </Button>
-                    </CardContent>
-                  </Card>
+                  <div className="glass-card p-3 space-y-3">
+                    <p style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>Registrar Interação</p>
+                    <div className="flex gap-2">
+                      <Select value={newInteracao.canal} onValueChange={v => setNewInteracao({ ...newInteracao, canal: v })}>
+                        <SelectTrigger className="w-[120px] h-7 text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="whatsapp" className="text-xs">WhatsApp</SelectItem>
+                          <SelectItem value="email" className="text-xs">Email</SelectItem>
+                          <SelectItem value="ligacao" className="text-xs">Ligação</SelectItem>
+                          <SelectItem value="presencial" className="text-xs">Presencial</SelectItem>
+                          <SelectItem value="instagram" className="text-xs">Instagram</SelectItem>
+                          <SelectItem value="linkedin" className="text-xs">LinkedIn</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Select value={newInteracao.status} onValueChange={v => setNewInteracao({ ...newInteracao, status: v })}>
+                        <SelectTrigger className="w-[120px] h-7 text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="aberto" className="text-xs">Aberto</SelectItem>
+                          <SelectItem value="resolvido" className="text-xs">Resolvido</SelectItem>
+                          <SelectItem value="aguardando" className="text-xs">Aguardando</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Textarea placeholder="Mensagem..." value={newInteracao.mensagem} onChange={e => setNewInteracao({ ...newInteracao, mensagem: e.target.value })} rows={2} className="text-xs resize-none" />
+                    <Button size="sm" onClick={handleSaveInteracao} disabled={savingInteracao || !newInteracao.mensagem.trim()} className="h-7 text-xs">
+                      {savingInteracao && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}Registrar
+                    </Button>
+                  </div>
 
                   {interacoes.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-6">Nenhuma interação</p>
+                    <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', textAlign: 'center', padding: '24px 0' }}>Nenhuma interação</p>
                   ) : (
                     <div className="space-y-2">
                       {interacoes.map(int => (
-                        <div key={int.id} className="p-3 rounded-md bg-muted/50 border border-border">
+                        <div key={int.id} className="p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
                           <div className="flex items-center gap-2 mb-1">
                             {channelIcon(int.canal)}
-                            <span className="text-xs font-medium text-muted-foreground uppercase">{int.canal}</span>
-                            <span className={`text-xs px-1.5 py-0.5 rounded-full ml-auto ${int.status === 'pendente' || int.status === 'aberto' ? 'status-pending' : int.status === 'resolvido' || int.status === 'respondido' ? 'status-approved' : 'bg-blue-500/15 text-blue-500'}`}>{int.status}</span>
+                            <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' }}>{int.canal}</span>
+                            <span className={`ml-auto ${int.status === 'pendente' || int.status === 'aberto' ? 'status-pending' : int.status === 'resolvido' || int.status === 'respondido' ? 'status-approved' : 'status-blue'}`}>{int.status}</span>
                           </div>
-                          <p className="text-sm text-foreground">{int.mensagem}</p>
-                          <p className="text-xs text-muted-foreground mt-1">{new Date(int.data_interacao).toLocaleDateString('pt-BR')}</p>
+                          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', lineHeight: 1.5 }}>{int.mensagem}</p>
+                          <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 4 }}>{new Date(int.data_interacao).toLocaleDateString('pt-BR')}</p>
                         </div>
                       ))}
                     </div>
@@ -419,19 +405,19 @@ const Clientes = () => {
 
                 <TabsContent value="timeline" className="mt-4">
                   {interacoes.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-6">Sem atividades</p>
+                    <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', textAlign: 'center', padding: '24px 0' }}>Sem atividades</p>
                   ) : (
-                    <div className="relative pl-6 space-y-4">
-                      <div className="absolute left-2 top-2 bottom-2 w-px bg-border" />
+                    <div className="relative pl-6 space-y-3">
+                      <div className="absolute left-2 top-2 bottom-2 w-px" style={{ background: 'rgba(255,255,255,0.08)' }} />
                       {interacoes.map(int => (
                         <div key={int.id} className="relative">
-                          <div className="absolute -left-[18px] top-1.5 w-3 h-3 rounded-full border-2 border-primary bg-background" />
-                          <div className="p-3 rounded-md bg-muted/30">
+                          <div className="absolute -left-[18px] top-1.5 w-3 h-3 rounded-full" style={{ border: '2px solid #F5C518', background: 'hsl(230, 25%, 5%)' }} />
+                          <div className="p-2.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)' }}>
                             <div className="flex items-center gap-2">
                               {channelIcon(int.canal)}
-                              <span className="text-xs text-muted-foreground">{new Date(int.data_interacao).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>{new Date(int.data_interacao).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
                             </div>
-                            <p className="text-sm text-foreground mt-1">{int.mensagem}</p>
+                            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 4, lineHeight: 1.5 }}>{int.mensagem}</p>
                           </div>
                         </div>
                       ))}
