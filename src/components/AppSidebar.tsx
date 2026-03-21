@@ -12,6 +12,7 @@ import {
   SidebarFooter, useSidebar,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 const navGroups = [
   {
@@ -47,6 +48,31 @@ export function AppSidebar() {
   const collapsed = state === 'collapsed';
   const { signOut, user } = useAuth();
   const { theme, toggleTheme } = useTheme();
+
+  const NavItem = ({ item }: { item: typeof navGroups[0]['items'][0] }) => {
+    const link = (
+      <NavLink
+        to={item.url}
+        end={item.url === '/'}
+        className="flex items-center gap-2.5 px-2.5 rounded-lg transition-all duration-150 h-8"
+        style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12.5, fontWeight: 500 }}
+        activeStyle={{ background: 'rgba(245,197,24,0.1)', color: '#F5C518', borderLeft: '2px solid #F5C518', paddingLeft: 9 }}
+      >
+        <item.icon className="w-3.5 h-3.5 shrink-0" />
+        {!collapsed && <span>{item.title}</span>}
+      </NavLink>
+    );
+
+    if (collapsed) {
+      return (
+        <Tooltip>
+          <TooltipTrigger asChild>{link}</TooltipTrigger>
+          <TooltipContent side="right" className="text-xs">{item.title}</TooltipContent>
+        </Tooltip>
+      );
+    }
+    return link;
+  };
 
   return (
     <Sidebar collapsible="icon">
@@ -86,16 +112,7 @@ export function AppSidebar() {
                 {group.items.map(item => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
-                      <NavLink
-                        to={item.url}
-                        end={item.url === '/'}
-                        className="flex items-center gap-2 px-2.5 rounded-lg transition-all duration-150 h-8"
-                        style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12.5, fontWeight: 500 }}
-                        activeStyle={{ background: 'rgba(245,197,24,0.1)', color: '#F5C518', borderLeft: '2px solid #F5C518', paddingLeft: 9 }}
-                      >
-                        <item.icon className="w-3.5 h-3.5 shrink-0" />
-                        {!collapsed && <span>{item.title}</span>}
-                      </NavLink>
+                      <NavItem item={item} />
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}

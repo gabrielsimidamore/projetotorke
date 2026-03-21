@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
 import Layout from '@/components/Layout';
 import { supabase, type Recomendacao } from '@/lib/supabase';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Check, X, Sparkles } from 'lucide-react';
+import { Loader2, Check, X, Sparkles, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const RecomendacoesPage = () => {
@@ -37,58 +36,58 @@ const RecomendacoesPage = () => {
   const rejeitados = recs.filter(r => r.status === 'Rejeitado');
 
   const renderCards = (items: Recomendacao[]) => {
-    if (items.length === 0) return <p className="text-center py-12 text-muted-foreground">Nenhuma recomendação</p>;
+    if (items.length === 0) return <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', textAlign: 'center', padding: '48px 0' }}>Nenhuma recomendação</p>;
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {items.map(rec => (
-          <Card key={rec.id} className="hover:shadow-md transition-shadow">
-            <CardHeader className="pb-2">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <span className="text-xs text-muted-foreground font-mono">{rec.id}</span>
-                  <CardTitle className="text-sm font-semibold mt-1">{rec.assunto_sugerido}</CardTitle>
-                </div>
-                <Sparkles className="w-4 h-4 text-primary shrink-0" />
+          <div key={rec.id} className="glass-card p-4 space-y-2.5">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <span style={{ fontSize: 10, fontFamily: 'Geist Mono, monospace', color: 'rgba(255,255,255,0.35)' }}>{rec.id}</span>
+                <p style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.85)', marginTop: 2, lineHeight: 1.3 }}>{rec.assunto_sugerido}</p>
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground">{rec.formato_sugerido}</span>
-                {rec.horario_sugerido && <span className="text-xs text-muted-foreground">🕐 {rec.horario_sugerido}</span>}
-              </div>
-              {rec.justificativa_ia && <p className="text-sm text-muted-foreground mb-3">{rec.justificativa_ia}</p>}
-              <p className="text-xs text-muted-foreground mb-3">Gerado: {new Date(rec.gerado_em).toLocaleDateString('pt-BR')}</p>
-              {rec.status === 'Pendente' && (
-                <div className="flex gap-2">
-                  <Button size="sm" className="flex-1" onClick={() => handleApprove(rec.id)}>
-                    <Check className="w-3 h-3 mr-1" />Aprovar
-                  </Button>
-                  <Button size="sm" variant="outline" className="flex-1 text-destructive" onClick={() => handleReject(rec.id)}>
-                    <X className="w-3 h-3 mr-1" />Rejeitar
-                  </Button>
-                </div>
+              <Sparkles className="w-4 h-4 shrink-0" style={{ color: '#F5C518' }} />
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="status-blue">{rec.formato_sugerido}</span>
+              {rec.horario_sugerido && (
+                <span className="flex items-center gap-1" style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
+                  <Clock className="w-2.5 h-2.5" />{rec.horario_sugerido}
+                </span>
               )}
-            </CardContent>
-          </Card>
+            </div>
+            {rec.justificativa_ia && <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', lineHeight: 1.5 }}>{rec.justificativa_ia}</p>}
+            <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Gerado: {new Date(rec.gerado_em).toLocaleDateString('pt-BR')}</p>
+            {rec.status === 'Pendente' && (
+              <div className="flex gap-2 pt-1">
+                <Button size="sm" className="flex-1 h-7 text-xs gap-1" onClick={() => handleApprove(rec.id)}>
+                  <Check className="w-3 h-3" />Aprovar
+                </Button>
+                <Button size="sm" variant="ghost" className="flex-1 h-7 text-xs gap-1" onClick={() => handleReject(rec.id)} style={{ color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)' }}>
+                  <X className="w-3 h-3" />Rejeitar
+                </Button>
+              </div>
+            )}
+          </div>
         ))}
       </div>
     );
   };
 
-  if (loading) return <Layout><div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div></Layout>;
+  if (loading) return <Layout><div className="flex justify-center py-12"><Loader2 className="w-5 h-5 animate-spin text-white/30" /></div></Layout>;
 
   return (
     <Layout>
-      <div className="space-y-6 animate-fade-in">
+      <div className="space-y-5 animate-fade-in">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Recomendações IA</h1>
-          <p className="text-sm text-muted-foreground">Sugestões geradas automaticamente pela IA</p>
+          <h1 className="text-lg font-bold text-white">Recomendações IA</h1>
+          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Sugestões geradas automaticamente pela IA</p>
         </div>
         <Tabs defaultValue="pendentes">
           <TabsList>
-            <TabsTrigger value="pendentes">Pendentes ({pendentes.length})</TabsTrigger>
-            <TabsTrigger value="aprovados">Aprovados ({aprovados.length})</TabsTrigger>
-            <TabsTrigger value="rejeitados">Rejeitados ({rejeitados.length})</TabsTrigger>
+            <TabsTrigger value="pendentes" className="text-xs">Pendentes ({pendentes.length})</TabsTrigger>
+            <TabsTrigger value="aprovados" className="text-xs">Aprovados ({aprovados.length})</TabsTrigger>
+            <TabsTrigger value="rejeitados" className="text-xs">Rejeitados ({rejeitados.length})</TabsTrigger>
           </TabsList>
           <TabsContent value="pendentes" className="mt-4">{renderCards(pendentes)}</TabsContent>
           <TabsContent value="aprovados" className="mt-4">{renderCards(aprovados)}</TabsContent>
