@@ -52,47 +52,52 @@ export function GlobalSearch() {
   };
 
   const icon = (type: string) => {
-    if (type === 'cliente') return <Users className="w-4 h-4 text-primary" />;
-    if (type === 'ideia') return <Lightbulb className="w-4 h-4 text-primary" />;
-    if (type === 'post') return <FileText className="w-4 h-4 text-primary" />;
-    return <FolderKanban className="w-4 h-4 text-primary" />;
+    const color = '#F5C518';
+    if (type === 'cliente') return <Users className="w-3.5 h-3.5" style={{ color }} />;
+    if (type === 'ideia') return <Lightbulb className="w-3.5 h-3.5" style={{ color }} />;
+    if (type === 'post') return <FileText className="w-3.5 h-3.5" style={{ color }} />;
+    return <FolderKanban className="w-3.5 h-3.5" style={{ color }} />;
   };
 
   return (
     <Dialog open={open} onOpenChange={o => { setOpen(o); if (!o) setQuery(''); }}>
-      <DialogContent className="p-0 gap-0 max-w-lg">
-        <div className="flex items-center border-b border-border px-4">
-          <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+      <DialogContent className="p-0 gap-0 max-w-lg" style={{ background: 'rgba(10,10,28,0.95)', backdropFilter: 'blur(24px)', border: '1px solid rgba(255,255,255,0.1)' }}>
+        <div className="flex items-center px-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <Search className="w-3.5 h-3.5 shrink-0" style={{ color: 'rgba(255,255,255,0.3)' }} />
           <Input
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Buscar clientes, ideias, posts, projetos..."
-            className="border-0 focus-visible:ring-0 text-sm"
+            className="border-0 focus-visible:ring-0 text-xs h-10"
+            style={{ background: 'transparent' }}
             autoFocus
           />
-          <kbd className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded shrink-0">ESC</kbd>
+          <kbd style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.06)', padding: '2px 6px', borderRadius: 4 }}>ESC</kbd>
         </div>
         {results.length > 0 && (
-          <div className="max-h-72 overflow-auto p-2">
+          <div className="max-h-72 overflow-auto p-1.5">
             {results.map((r, idx) => (
               <button
                 key={`${r.type}-${r.id}`}
                 onClick={() => handleSelect(r)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-left transition-colors ${idx === selectedIndex ? 'bg-muted' : 'hover:bg-muted/50'}`}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors"
+                style={{
+                  background: idx === selectedIndex ? 'rgba(255,255,255,0.06)' : 'transparent',
+                }}
               >
                 {icon(r.type)}
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-foreground truncate">{r.title}</p>
-                  <p className="text-xs text-muted-foreground truncate">{r.subtitle}</p>
+                  <p style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.85)' }} className="truncate">{r.title}</p>
+                  <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }} className="truncate">{r.subtitle}</p>
                 </div>
-                <span className="text-[10px] uppercase text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{r.type}</span>
+                <span style={{ fontSize: 9, textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', background: 'rgba(255,255,255,0.05)', padding: '1px 5px', borderRadius: 4 }}>{r.type}</span>
               </button>
             ))}
           </div>
         )}
         {query.length >= 2 && results.length === 0 && (
-          <p className="text-sm text-muted-foreground text-center py-8">Nenhum resultado encontrado</p>
+          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', textAlign: 'center', padding: '32px 0' }}>Nenhum resultado encontrado</p>
         )}
       </DialogContent>
     </Dialog>
