@@ -1,20 +1,18 @@
 import { useEffect, useState } from 'react';
 import Layout from '@/components/Layout';
 import { supabase, type Metrica } from '@/lib/supabase';
-import { Loader2, Eye, Heart, MessageSquare, TrendingUp, Trophy, Star } from 'lucide-react';
+import { Loader2, Eye, Heart, MessageSquare, TrendingUp, Star } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
-const ACCENT = '#F5C518', BLUE = '#5b8dee', GREEN = '#22c55e', RED = '#ef4444';
+const ACCENT = '#e5a700', BLUE = '#3b82f6', GREEN = '#22c55e', RED = '#ef4444';
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
-    <div style={{ background: 'rgba(10,10,28,0.95)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '8px 12px' }}>
-      {label && <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>{label}</p>}
+    <div className="bg-popover border border-border rounded-lg p-2 shadow-lg">
+      {label && <p className="text-xs text-muted-foreground mb-1">{label}</p>}
       {payload.map((p: any, i: number) => (
-        <p key={i} style={{ fontSize: 11, color: p.color, fontWeight: 600 }}>
-          {p.name}: <span style={{ color: '#fff' }}>{typeof p.value === 'number' ? p.value.toLocaleString('pt-BR') : p.value}</span>
-        </p>
+        <p key={i} className="text-xs font-medium" style={{ color: p.color }}>{p.name}: <span className="text-foreground">{p.value?.toLocaleString('pt-BR')}</span></p>
       ))}
     </div>
   );
@@ -25,12 +23,10 @@ const MetricasPage = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetch = async () => {
-      const { data } = await supabase.from('metricas').select('*').order('score_performance', { ascending: false });
+    supabase.from('metricas').select('*').order('score_performance', { ascending: false }).then(({ data }) => {
       setMetricas(data ?? []);
       setLoading(false);
-    };
-    fetch();
+    });
   }, []);
 
   const totalImpressions = metricas.reduce((a, m) => a + m.impressoes, 0);
@@ -38,96 +34,82 @@ const MetricasPage = () => {
   const totalComments = metricas.reduce((a, m) => a + m.comentarios, 0);
   const avgScore = metricas.length ? Math.round(metricas.reduce((a, m) => a + m.score_performance, 0) / metricas.length) : 0;
 
-  const chartData = metricas.slice(0, 10).map(m => ({
-    post: m.id_post || `#${m.id}`,
-    score: m.score_performance,
-    likes: m.likes,
-    comments: m.comentarios,
-  }));
+  const chartData = metricas.slice(0, 10).map(m => ({ post: m.id_post || `#${m.id}`, score: m.score_performance }));
 
-  if (loading) return <Layout><div className="flex justify-center py-12"><Loader2 className="w-5 h-5 animate-spin text-white/30" /></div></Layout>;
+  if (loading) return <Layout><div className="flex justify-center py-12"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div></Layout>;
 
   return (
     <Layout>
-      <div className="space-y-5 animate-fade-in">
+      <div className="space-y-6 animate-fade-in">
         <div>
-          <h1 className="text-lg font-bold text-white">Métricas</h1>
-          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Performance dos posts no LinkedIn</p>
+          <h1 className="text-xl font-bold text-foreground">Métricas</h1>
+          <p className="text-sm text-muted-foreground">Performance dos posts no LinkedIn</p>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 animate-stagger">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
-            { title: 'Impressões', value: totalImpressions.toLocaleString('pt-BR'), icon: Eye, color: BLUE, glow: 'glass-blue' },
-            { title: 'Likes', value: totalLikes.toLocaleString('pt-BR'), icon: Heart, color: RED, glow: 'glass-red' },
-            { title: 'Comentários', value: totalComments.toLocaleString('pt-BR'), icon: MessageSquare, color: GREEN, glow: 'glass-green' },
-            { title: 'Score Médio', value: avgScore.toLocaleString('pt-BR'), icon: TrendingUp, color: ACCENT, glow: 'glass-accent' },
+            { title: 'Impressões', value: totalImpressions.toLocaleString('pt-BR'), icon: Eye, color: BLUE },
+            { title: 'Likes', value: totalLikes.toLocaleString('pt-BR'), icon: Heart, color: RED },
+            { title: 'Comentários', value: totalComments.toLocaleString('pt-BR'), icon: MessageSquare, color: GREEN },
+            { title: 'Score Médio', value: avgScore.toLocaleString('pt-BR'), icon: TrendingUp, color: ACCENT },
           ].map(kpi => (
-            <div key={kpi.title} className={`kpi-card ${kpi.glow}`}>
-              <div className="flex items-start justify-between mb-2">
-                <span className="section-label mb-0">{kpi.title}</span>
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${kpi.color}18` }}>
-                  <kpi.icon className="w-3.5 h-3.5" style={{ color: kpi.color }} />
+            <div key={kpi.title} className="bg-card rounded-lg border border-border p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-medium text-muted-foreground">{kpi.title}</span>
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${kpi.color}15` }}>
+                  <kpi.icon className="w-4 h-4" style={{ color: kpi.color }} />
                 </div>
               </div>
-              <p className="text-2xl font-bold text-white">{kpi.value}</p>
+              <p className="text-2xl font-bold text-foreground">{kpi.value}</p>
             </div>
           ))}
         </div>
 
         {chartData.length > 0 && (
-          <div className="glass-card p-4">
-            <span className="section-label">Top 10 Posts por Score</span>
+          <div className="bg-card rounded-lg border border-border p-4">
+            <h3 className="text-sm font-semibold text-foreground mb-3">Top 10 Posts por Score</h3>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={chartData} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
-                <XAxis dataKey="post" tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.4)' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.4)' }} axisLine={false} tickLine={false} />
+                <XAxis dataKey="post" tick={{ fontSize: 11 }} className="fill-muted-foreground" axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11 }} className="fill-muted-foreground" axisLine={false} tickLine={false} />
                 <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="score" name="Score" fill={ACCENT} radius={[4, 4, 0, 0]} fillOpacity={0.8} />
+                <Bar dataKey="score" name="Score" fill={ACCENT} radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         )}
 
-        <div className="glass-card overflow-hidden">
-          <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-            <span className="section-label mb-0">Detalhamento</span>
-            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{metricas.length} registros</span>
+        <div className="bg-card rounded-lg border border-border overflow-hidden">
+          <div className="px-4 py-3 flex items-center justify-between border-b border-border">
+            <h3 className="text-sm font-semibold text-foreground">Detalhamento</h3>
+            <span className="text-xs text-muted-foreground">{metricas.length} registros</span>
           </div>
           {metricas.length === 0 ? (
-            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', textAlign: 'center', padding: '48px 0' }}>Nenhuma métrica registrada</p>
+            <p className="text-sm text-muted-foreground text-center py-12">Nenhuma métrica registrada</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full dense-table">
+              <table className="w-full text-sm">
                 <thead>
-                  <tr>
-                    <th className="text-left">Post</th>
-                    <th className="text-left">Assunto</th>
-                    <th className="text-right">Impressões</th>
-                    <th className="text-right">Likes</th>
-                    <th className="text-right">Comentários</th>
-                    <th className="text-right">Score</th>
-                    <th className="text-center">Top</th>
+                  <tr className="border-b border-border bg-muted/50">
+                    <th className="text-left px-4 py-2 text-xs font-medium text-muted-foreground">Post</th>
+                    <th className="text-left px-4 py-2 text-xs font-medium text-muted-foreground">Assunto</th>
+                    <th className="text-right px-4 py-2 text-xs font-medium text-muted-foreground">Impressões</th>
+                    <th className="text-right px-4 py-2 text-xs font-medium text-muted-foreground">Likes</th>
+                    <th className="text-right px-4 py-2 text-xs font-medium text-muted-foreground">Score</th>
+                    <th className="text-center px-4 py-2 text-xs font-medium text-muted-foreground">Top</th>
                   </tr>
                 </thead>
                 <tbody>
                   {metricas.map(m => (
-                    <tr key={m.id}>
-                      <td><span style={{ fontFamily: 'Geist Mono, monospace', color: 'rgba(255,255,255,0.5)' }}>{m.id_post}</span></td>
-                      <td><span className="text-white/70 truncate" style={{ maxWidth: 180, display: 'inline-block' }}>{m.assunto ?? '—'}</span></td>
-                      <td className="text-right text-white/70">{m.impressoes.toLocaleString('pt-BR')}</td>
-                      <td className="text-right text-white/70">{m.likes.toLocaleString('pt-BR')}</td>
-                      <td className="text-right text-white/70">{m.comentarios.toLocaleString('pt-BR')}</td>
-                      <td className="text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <div className="w-12 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
-                            <div className="h-full rounded-full" style={{ width: `${Math.min(m.score_performance, 100)}%`, background: m.score_performance >= 70 ? GREEN : m.score_performance >= 40 ? ACCENT : RED }} />
-                          </div>
-                          <span style={{ fontSize: 11, fontWeight: 600, width: 28, textAlign: 'right', color: m.score_performance >= 70 ? '#4ade80' : m.score_performance >= 40 ? ACCENT : '#f87171' }}>
-                            {m.score_performance}
-                          </span>
-                        </div>
+                    <tr key={m.id} className="border-b border-border last:border-0 hover:bg-muted/30">
+                      <td className="px-4 py-2 font-mono text-muted-foreground">{m.id_post}</td>
+                      <td className="px-4 py-2 text-foreground truncate max-w-[200px]">{m.assunto ?? '—'}</td>
+                      <td className="px-4 py-2 text-right text-muted-foreground">{m.impressoes.toLocaleString('pt-BR')}</td>
+                      <td className="px-4 py-2 text-right text-muted-foreground">{m.likes.toLocaleString('pt-BR')}</td>
+                      <td className="px-4 py-2 text-right font-semibold" style={{ color: m.score_performance >= 70 ? GREEN : m.score_performance >= 40 ? ACCENT : RED }}>
+                        {m.score_performance}
                       </td>
-                      <td className="text-center">{m.top_conteudo ? <Star className="w-3.5 h-3.5 mx-auto" style={{ color: ACCENT }} /> : <span style={{ color: 'rgba(255,255,255,0.15)' }}>—</span>}</td>
+                      <td className="px-4 py-2 text-center">{m.top_conteudo ? <Star className="w-4 h-4 mx-auto text-primary" /> : '—'}</td>
                     </tr>
                   ))}
                 </tbody>
