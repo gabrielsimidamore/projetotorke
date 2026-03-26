@@ -7,19 +7,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Loader2, DollarSign } from 'lucide-react';
+import { Plus, Loader2, DollarSign, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const STATUS_COLS = [
-  { id: 'prospeccao', title: 'Prospecção', color: '#e5a700' },
-  { id: 'proposta_enviada', title: 'Proposta Enviada', color: '#3b82f6' },
-  { id: 'em_negociacao', title: 'Em Negociação', color: '#a855f7' },
-  { id: 'aprovado', title: 'Aprovado', color: '#22c55e' },
-  { id: 'em_execucao', title: 'Em Execução', color: '#06b6d4' },
-  { id: 'concluido', title: 'Concluído', color: '#10b981' },
-  { id: 'perdido', title: 'Perdido', color: '#ef4444' },
+  { id: 'prospeccao',       title: 'Prospecção',       color: '#e5a700' },
+  { id: 'proposta_enviada', title: 'Proposta Enviada',  color: '#3b82f6' },
+  { id: 'em_negociacao',    title: 'Em Negociação',     color: '#a855f7' },
+  { id: 'aprovado',         title: 'Aprovado',          color: '#22c55e' },
+  { id: 'em_execucao',      title: 'Em Execução',       color: '#06b6d4' },
+  { id: 'concluido',        title: 'Concluído',         color: '#10b981' },
+  { id: 'perdido',          title: 'Perdido',           color: '#ef4444' },
 ];
 
 const ProjetosPage = () => {
@@ -30,6 +31,7 @@ const ProjetosPage = () => {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [selectedProjeto, setSelectedProjeto] = useState<Projeto | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [form, setForm] = useState({ nome: '', cliente_id: '', valor_estimado: '', data_fechamento_prevista: '', responsavel: '', descricao: '', status: 'prospeccao', observacoes: '' });
@@ -45,7 +47,6 @@ const ProjetosPage = () => {
     setIdeias(i.data ?? []);
     setLoading(false);
   };
-
   useEffect(() => { fetchData(); }, []);
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -61,8 +62,27 @@ const ProjetosPage = () => {
       status: form.status,
     });
     if (error) toast({ title: 'Erro', description: error.message, variant: 'destructive' });
-    else { toast({ title: 'Projeto criado!' }); setDialogOpen(false); setForm({ nome: '', cliente_id: '', valor_estimado: '', data_fechamento_prevista: '', responsavel: '', descricao: '', status: 'prospeccao', observacoes: '' }); fetchData(); }
+    else {
+      toast({ title: 'Projeto criado!' });
+      setDialogOpen(false);
+      setForm({ nome: '', cliente_id: '', valor_estimado: '', data_fechamento_prevista: '', responsavel: '', descricao: '', status: 'prospeccao', observacoes: '' });
+      fetchData();
+    }
     setSaving(false);
+  };
+
+  const handleDelete = async (projeto: Projeto) => {
+    setDeleting(true);
+    const { error } = await supabase.from('projetos').delete().eq('id', projeto.id);
+    if (error) {
+      toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: '🗑️ Projeto excluído', description: `"${projeto.nome}" foi removido.` });
+      setProjetos(prev => prev.filter(p => p.id !== projeto.id));
+      setSheetOpen(false);
+      setSelectedProjeto(null);
+    }
+    setDeleting(false);
   };
 
   const handleMove = async (itemId: string | number, newStatus: string) => {
@@ -77,18 +97,19 @@ const ProjetosPage = () => {
   };
 
   const columns: KanbanColumn<Projeto>[] = STATUS_COLS.map(col => ({
-    id: col.id,
-    title: col.title,
-    color: col.color,
+    id: col.id, title: col.title, color: col.color,
     items: projetos.filter(p => p.status === col.id),
   }));
 
-  const totalPipeline = projetos.filter(p => !['concluido', 'perdido'].includes(p.status)).reduce((a, p) => a + (p.valor_estimado ?? 0), 0);
+  const totalPipeline = projetos
+    .filter(p => !['concluido', 'perdido'].includes(p.status))
+    .reduce((a, p) => a + (p.valor_estimado ?? 0), 0);
 
   const renderCard = (projeto: Projeto) => {
     const daysSinceUpdate = Math.floor((Date.now() - new Date(projeto.updated_at).getTime()) / 86400000);
     return (
-      <div className="bg-card rounded-lg border border-border p-3 space-y-2 hover:shadow-sm transition-shadow cursor-pointer" onClick={() => handleCardClick(projeto)}>
+      <div className="bg-card rounded-lg border border-border p-3 space-y-2 hover:shadow-sm transition-shadow cursor-pointer"
+        onClick={() => handleCardClick(projeto)}>
         <p className="text-sm font-medium text-foreground">{projeto.nome}</p>
         {projeto.clientes && <p className="text-xs text-muted-foreground">{projeto.clientes.nome}</p>}
         <div className="flex items-center gap-2 flex-wrap">
@@ -98,12 +119,16 @@ const ProjetosPage = () => {
             </span>
           )}
           {daysSinceUpdate > 7 && (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">{daysSinceUpdate}d parado</span>
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+              {daysSinceUpdate}d parado
+            </span>
           )}
         </div>
         {projeto.responsavel && <p className="text-xs text-muted-foreground">👤 {projeto.responsavel}</p>}
         {projeto.data_fechamento_prevista && (
-          <p className="text-xs text-muted-foreground">📅 {new Date(projeto.data_fechamento_prevista).toLocaleDateString('pt-BR')}</p>
+          <p className="text-xs text-muted-foreground">
+            📅 {new Date(projeto.data_fechamento_prevista).toLocaleDateString('pt-BR')}
+          </p>
         )}
       </div>
     );
@@ -191,6 +216,34 @@ const ProjetosPage = () => {
                     <p className="text-sm text-foreground/80 whitespace-pre-wrap">{selectedProjeto.descricao}</p>
                   </div>
                 )}
+
+                {/* Botão Excluir */}
+                <div className="pt-2 border-t border-border">
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" className="w-full gap-2" disabled={deleting}>
+                        {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                        Excluir Projeto
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Excluir projeto?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Tem certeza que deseja excluir <strong>"{selectedProjeto.nome}"</strong>? Esta ação não pode ser desfeita.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          onClick={() => handleDelete(selectedProjeto)}>
+                          Sim, excluir
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
               </div>
             )}
           </SheetContent>
