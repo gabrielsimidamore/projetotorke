@@ -57,7 +57,7 @@ export type Ideia = {
   assunto_tema: string;
   formato: string;
   observacoes: string | null;
-  status: 'Pendente' | 'Em uso' | 'Usado' | 'Rejeitado';
+  status: 'Pendente' | 'Em andamento' | 'Aprovado' | 'Rejeitado';
   data_uso: string | null;
   plataforma?: string;
   data_postagem?: string | null;
