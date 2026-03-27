@@ -14,6 +14,7 @@ import IdeiasPage from "./pages/Ideias";
 import PostsPage from "./pages/Posts";
 import MetricasPage from "./pages/Metricas";
 import RecomendacoesPage from "./pages/Recomendacoes";
+import VendasPage from "./pages/Vendas";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -54,6 +55,7 @@ const App = () => (
               <Route path="/posts" element={<ProtectedRoute><PostsPage /></ProtectedRoute>} />
               <Route path="/metricas" element={<ProtectedRoute><MetricasPage /></ProtectedRoute>} />
               <Route path="/recomendacoes" element={<ProtectedRoute><RecomendacoesPage /></ProtectedRoute>} />
+              <Route path="/vendas" element={<ProtectedRoute><VendasPage /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
