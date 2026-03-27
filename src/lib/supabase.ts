@@ -137,8 +137,28 @@ export type Rejeitado = {
   created_at: string;
 };
 
-export type Projeto = {
+export type Pedido = {
   id: string;
+  codigo_pedido: string | null;
+  cliente_id: string;
+  produto_id: string | null;
+  data: string | null;
+  qtd: number | null;
+  data_emissao: string | null;
+  data_vencimento: string | null;
+  total: number | null;
+  desconto_pct: number | null;
+  forma_pagamento: string | null;
+  prazo: string | null;
+  vencimento: string | null;
+  status: string | null;
+  motivo_perda: string | null;
+  observacoes: string | null;
+  clientes?: { nome: string; empresa: string } | null;
+  produtos?: { codigo: string; descricao: string | null; valor_unit: number | null } | null;
+};
+
+export type Projeto = {  id: string;
   nome: string;
   cliente_id: string | null;
   valor_estimado: number | null;
