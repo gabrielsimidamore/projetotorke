@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Search, Eye, Pencil, Trash2, Loader2, Mail, Phone, Download, ArrowUpDown, Instagram, PhoneCall, UserCheck, Linkedin } from 'lucide-react';
+import { Plus, Search, Eye, Pencil, Trash2, Loader2, Mail, Phone, Download, ArrowUpDown, Instagram, PhoneCall, UserCheck, Linkedin, ShoppingCart, DollarSign, TrendingUp, Calendar, Package } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const avatarColor = (name: string) => {
@@ -39,6 +39,7 @@ const Clientes = () => {
   const [page, setPage] = useState(0);
   const [newInteracao, setNewInteracao] = useState({ canal: 'whatsapp', mensagem: '', status: 'aberto' });
   const [savingInteracao, setSavingInteracao] = useState(false);
+  const [pedidos, setPedidos] = useState<any[]>([]);
   const PER_PAGE = 20;
 
   const fetchClientes = async () => {
@@ -99,8 +100,12 @@ const Clientes = () => {
 
   const handleView = async (c: Cliente) => {
     setSelectedCliente(c);
-    const { data } = await supabase.from('interacoes').select('*').eq('cliente_id', c.id).order('data_interacao', { ascending: false });
-    setInteracoes(data ?? []);
+    const [intRes, pedRes] = await Promise.all([
+      supabase.from('interacoes').select('*').eq('cliente_id', c.id).order('data_interacao', { ascending: false }),
+      supabase.from('pedidos').select('*, produtos(codigo, descricao, valor_unit)').eq('cliente_id', c.id).order('data', { ascending: false }),
+    ]);
+    setInteracoes(intRes.data ?? []);
+    setPedidos(pedRes.data ?? []);
     setSheetOpen(true);
   };
 
@@ -291,6 +296,7 @@ const Clientes = () => {
                 <TabsList className="w-full">
                   <TabsTrigger value="dados" className="flex-1">Dados</TabsTrigger>
                   <TabsTrigger value="interacoes" className="flex-1">Interações ({interacoes.length})</TabsTrigger>
+                  <TabsTrigger value="vendas" className="flex-1">Vendas ({pedidos.length})</TabsTrigger>
                 </TabsList>
                 <TabsContent value="dados" className="mt-4 space-y-3">
                   <div className="grid grid-cols-2 gap-3">
@@ -357,6 +363,82 @@ const Clientes = () => {
                         </div>
                       ))}
                     </div>
+                  )}
+                </TabsContent>
+                <TabsContent value="vendas" className="mt-4 space-y-3">
+                  {pedidos.length === 0 ? (
+                    <div className="text-center py-10 text-muted-foreground">
+                      <ShoppingCart className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                      <p className="text-sm">Nenhum pedido registrado</p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Mini métricas */}
+                      <div className="grid grid-cols-2 gap-2">
+                        {(() => {
+                          const valid = pedidos.filter((p: any) => p.status !== 'perdido' && p.status !== 'cancelado');
+                          const total = valid.reduce((s: number, p: any) => s + (p.total ?? 0), 0);
+                          const ticket = valid.length > 0 ? total / valid.length : 0;
+                          return [
+                            { icon: DollarSign, label: 'Total', value: total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), color: 'text-yellow-500' },
+                            { icon: ShoppingCart, label: 'Pedidos', value: pedidos.length, color: 'text-blue-500' },
+                            { icon: TrendingUp, label: 'Ticket Médio', value: ticket.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), color: 'text-green-500' },
+                            { icon: Calendar, label: 'Última Compra', value: pedidos[0]?.data ? new Date(pedidos[0].data).toLocaleDateString('pt-BR') : '—', color: 'text-purple-500' },
+                          ].map(({ icon: Icon, label, value, color }) => (
+                            <div key={label} className="p-2.5 rounded-lg bg-muted flex items-center gap-2">
+                              <Icon className={`w-3.5 h-3.5 shrink-0 ${color}`} />
+                              <div>
+                                <p className="text-[10px] text-muted-foreground">{label}</p>
+                                <p className="text-xs font-bold text-foreground">{value}</p>
+                              </div>
+                            </div>
+                          ));
+                        })()}
+                      </div>
+                      {/* Lista de pedidos */}
+                      <div className="space-y-2">
+                        {pedidos.map((p: any) => {
+                          const statusCfg: Record<string, { label: string; cls: string }> = {
+                            aprovado: { label: 'Aprovado', cls: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
+                            em_negociacao: { label: 'Em negociação', cls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
+                            proposta_enviada: { label: 'Proposta', cls: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' },
+                            perdido: { label: 'Perdido', cls: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
+                            concluido: { label: 'Concluído', cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' },
+                            aguardando: { label: 'Aguardando', cls: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' },
+                            cancelado: { label: 'Cancelado', cls: 'bg-gray-100 text-gray-600 dark:bg-gray-900/30 dark:text-gray-400' },
+                          };
+                          const st = statusCfg[p.status ?? ''] ?? { label: p.status ?? '—', cls: 'bg-gray-100 text-gray-600' };
+                          return (
+                            <div key={p.id} className="p-3 rounded-lg border border-border space-y-1.5">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                                  <Calendar className="w-3 h-3" />
+                                  {p.data ? new Date(p.data).toLocaleDateString('pt-BR') : '—'}
+                                </span>
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${st.cls}`}>{st.label}</span>
+                              </div>
+                              {p.produtos && (
+                                <div className="flex items-center gap-1.5 text-xs">
+                                  <Package className="w-3 h-3 text-muted-foreground" />
+                                  <span className="font-mono text-foreground">{p.produtos.codigo}</span>
+                                  {p.produtos.descricao && <span className="text-muted-foreground">— {p.produtos.descricao}</span>}
+                                </div>
+                              )}
+                              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                <div className="flex gap-3">
+                                  {p.qtd && <span>Qtd: <strong className="text-foreground">{p.qtd}</strong></span>}
+                                  {p.desconto_pct && <span>Desc: <strong className="text-foreground">{p.desconto_pct}%</strong></span>}
+                                  {p.forma_pagamento && <span className="capitalize">{p.forma_pagamento.replace('_', ' ')}</span>}
+                                </div>
+                                <span className="font-bold text-foreground text-sm">
+                                  {p.total != null ? p.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '—'}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
                   )}
                 </TabsContent>
               </Tabs>
