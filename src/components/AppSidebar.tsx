@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Lightbulb, FileText, BarChart3, Sparkles,
-  LogOut, Sun, Moon, Users, MessageSquare, FolderKanban, ShoppingCart,
+  LogOut, Sun, Moon, Users, MessageSquare, FolderKanban, ShoppingCart, CalendarDays,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
@@ -26,6 +26,7 @@ const navGroups = [
       { title: 'Vendas', url: '/vendas', icon: ShoppingCart },
       { title: 'Interações', url: '/interacoes', icon: MessageSquare },
       { title: 'Projetos', url: '/projetos', icon: FolderKanban },
+      { title: 'Reuniões', url: '/reunioes', icon: CalendarDays },
     ],
   },
   {
