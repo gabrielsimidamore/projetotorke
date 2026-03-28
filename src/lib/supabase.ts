@@ -202,3 +202,21 @@ export type Atividade = {
   usuario_email: string | null;
   created_at: string;
 };
+
+export type Reuniao = {
+  id: string;
+  titulo: string;
+  data: string;
+  horario_inicio: string;
+  horario_fim: string | null;
+  local: string | null;
+  tipo: 'interna' | 'cliente' | 'parceiro' | 'outro';
+  assunto: string;
+  pauta: string | null;
+  observacoes: string | null;
+  participantes: string[] | null;
+  responsavel: string | null;
+  status: 'agendada' | 'realizada' | 'cancelada' | 'adiada';
+  created_at: string;
+  updated_at: string;
+};
