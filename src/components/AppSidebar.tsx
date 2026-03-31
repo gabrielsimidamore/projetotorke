@@ -1,10 +1,14 @@
+import { useEffect, useState } from 'react';
 import {
   LayoutDashboard, Lightbulb, FileText, BarChart3, Sparkles,
-  LogOut, Sun, Moon, Users, MessageSquare, FolderKanban, ShoppingCart, CalendarDays, Bell,
+  LogOut, Sun, Moon, Users, MessageSquare, FolderKanban, ShoppingCart,
+  CalendarDays, Bell, ChevronDown, ChevronRight, Plus,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { supabase, type Projeto, type Notificacao } from '@/lib/supabase';
+import { useNavigate } from 'react-router-dom';
 import logo from '@/assets/logo-torke.jpeg';
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -28,7 +32,6 @@ const navGroups = [
       { title: 'Clientes', url: '/clientes', icon: Users },
       { title: 'Vendas', url: '/vendas', icon: ShoppingCart },
       { title: 'Interações', url: '/interacoes', icon: MessageSquare },
-      { title: 'Projetos', url: '/projetos', icon: FolderKanban },
       { title: 'Reuniões', url: '/reunioes', icon: CalendarDays },
     ],
   },
@@ -53,6 +56,26 @@ export function AppSidebar() {
   const collapsed = state === 'collapsed';
   const { signOut, user } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const navigate = useNavigate();
+
+  const [projetosOpen, setProjetosOpen] = useState(true);
+  const [projetos, setProjetos] = useState<Projeto[]>([]);
+  const [notifCount, setNotifCount] = useState(0);
+
+  useEffect(() => {
+    supabase
+      .from('projetos')
+      .select('id, nome, cor, foto_url, status')
+      .order('ordem')
+      .limit(12)
+      .then(({ data }) => setProjetos(data ?? []));
+
+    supabase
+      .from('notificacoes')
+      .select('id', { count: 'exact', head: true })
+      .eq('lida', false)
+      .then(({ count }) => setNotifCount(count ?? 0));
+  }, []);
 
   const NavItem = ({ item }: { item: typeof navGroups[0]['items'][0] }) => {
     const link = (
@@ -113,9 +136,117 @@ export function AppSidebar() {
             </SidebarGroupContent>
           </SidebarGroup>
         ))}
+
+        {/* Projetos expansível */}
+        <SidebarGroup className="py-0 mb-1">
+          {!collapsed ? (
+            <>
+              <button
+                onClick={() => setProjetosOpen(v => !v)}
+                className="flex items-center justify-between w-full px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <div className="flex items-center gap-1.5">
+                  <FolderKanban className="w-3.5 h-3.5" />
+                  Projetos
+                </div>
+                {projetosOpen
+                  ? <ChevronDown className="w-3 h-3" />
+                  : <ChevronRight className="w-3 h-3" />}
+              </button>
+
+              {projetosOpen && (
+                <SidebarGroupContent>
+                  <SidebarMenu className="gap-0.5">
+                    {/* Link para lista de projetos */}
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <NavLink
+                          to="/projetos"
+                          className="flex items-center gap-2.5 px-2.5 rounded-md transition-all duration-150 h-8 text-sm text-muted-foreground hover:text-foreground hover:bg-accent"
+                          activeClassName="bg-primary/10 text-primary font-medium"
+                        >
+                          <LayoutDashboard className="w-3.5 h-3.5 shrink-0" />
+                          <span className="text-xs">Ver todos</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+
+                    {/* Projetos individuais */}
+                    {projetos.map(p => (
+                      <SidebarMenuItem key={p.id}>
+                        <SidebarMenuButton asChild>
+                          <button
+                            onClick={() => navigate(`/projetos/${p.id}`)}
+                            className="flex items-center gap-2 px-2.5 rounded-md transition-all duration-150 h-8 w-full text-left text-muted-foreground hover:text-foreground hover:bg-accent"
+                          >
+                            <span
+                              className="w-2 h-2 rounded-full shrink-0"
+                              style={{ backgroundColor: p.cor || '#6366f1' }}
+                            />
+                            <span className="text-xs truncate">{p.nome}</span>
+                          </button>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+
+                    {/* Novo projeto */}
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <button
+                          onClick={() => navigate('/projetos?novo=1')}
+                          className="flex items-center gap-2 px-2.5 rounded-md transition-all duration-150 h-8 w-full text-left text-muted-foreground hover:text-foreground hover:bg-accent"
+                        >
+                          <Plus className="w-3.5 h-3.5 shrink-0" />
+                          <span className="text-xs">Novo projeto</span>
+                        </button>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              )}
+            </>
+          ) : (
+            <SidebarGroupContent>
+              <SidebarMenu className="gap-0.5">
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <NavLink
+                          to="/projetos"
+                          className="flex items-center gap-2.5 px-2.5 rounded-md transition-all duration-150 h-9 text-sm text-muted-foreground hover:text-foreground hover:bg-accent"
+                          activeClassName="bg-primary/10 text-primary font-medium"
+                        >
+                          <FolderKanban className="w-4 h-4 shrink-0" />
+                        </NavLink>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="text-xs">Projetos</TooltipContent>
+                    </Tooltip>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          )}
+        </SidebarGroup>
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border p-2 space-y-1 bg-sidebar">
+        {/* Notificações com badge */}
+        <button
+          onClick={() => navigate('/notificacoes')}
+          className="flex items-center gap-2 w-full px-2.5 h-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors relative"
+        >
+          <div className="relative shrink-0">
+            <Bell className="w-4 h-4" />
+            {notifCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold px-1 leading-none">
+                {notifCount > 99 ? '99+' : notifCount}
+              </span>
+            )}
+          </div>
+          {!collapsed && <span className="text-xs">Notificações</span>}
+        </button>
+
         <Button
           variant="ghost" size="sm" onClick={toggleTheme}
           className="w-full justify-start h-8 text-xs gap-2 rounded-md px-2.5 text-muted-foreground hover:text-foreground"

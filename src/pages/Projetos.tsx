@@ -10,7 +10,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Loader2, DollarSign, Trash2, LayoutGrid, KanbanSquare, ArrowRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -101,7 +100,7 @@ const ProjetosPage = () => {
     toast({ title: `Projeto movido para ${STATUS_COLS.find(c => c.id === newStatus)?.title}` });
   };
 
-  const handleCardClick = (projeto: Projeto) => { setSelectedProjeto(projeto); setSheetOpen(true); };
+  const handleCardClick = (projeto: Projeto) => { navigate(`/projetos/${projeto.id}`); };
 
   const columns: KanbanColumn<Projeto>[] = STATUS_COLS.map(col => ({
     id: col.id, title: col.title, color: col.color,
