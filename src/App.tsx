@@ -10,12 +10,14 @@ import Dashboard from "./pages/Dashboard";
 import Clientes from "./pages/Clientes";
 import Interacoes from "./pages/Interacoes";
 import ProjetosPage from "./pages/Projetos";
+import ProjetoDetalhe from "./pages/ProjetoDetalhe";
 import IdeiasPage from "./pages/Ideias";
 import PostsPage from "./pages/Posts";
 import MetricasPage from "./pages/Metricas";
 import RecomendacoesPage from "./pages/Recomendacoes";
 import VendasPage from "./pages/Vendas";
 import ReunioesPag from "./pages/Reunioes";
+import NotificacoesPage from "./pages/Notificacoes";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -52,12 +54,14 @@ const App = () => (
               <Route path="/clientes" element={<ProtectedRoute><Clientes /></ProtectedRoute>} />
               <Route path="/interacoes" element={<ProtectedRoute><Interacoes /></ProtectedRoute>} />
               <Route path="/projetos" element={<ProtectedRoute><ProjetosPage /></ProtectedRoute>} />
+              <Route path="/projetos/:id" element={<ProtectedRoute><ProjetoDetalhe /></ProtectedRoute>} />
               <Route path="/ideias" element={<ProtectedRoute><IdeiasPage /></ProtectedRoute>} />
               <Route path="/posts" element={<ProtectedRoute><PostsPage /></ProtectedRoute>} />
               <Route path="/metricas" element={<ProtectedRoute><MetricasPage /></ProtectedRoute>} />
               <Route path="/recomendacoes" element={<ProtectedRoute><RecomendacoesPage /></ProtectedRoute>} />
               <Route path="/vendas" element={<ProtectedRoute><VendasPage /></ProtectedRoute>} />
               <Route path="/reunioes" element={<ProtectedRoute><ReunioesPag /></ProtectedRoute>} />
+              <Route path="/notificacoes" element={<ProtectedRoute><NotificacoesPage /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
