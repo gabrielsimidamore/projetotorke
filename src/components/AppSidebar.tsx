@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Lightbulb, FileText, BarChart3, Sparkles,
-  LogOut, Sun, Moon, Users, MessageSquare, FolderKanban, ShoppingCart, CalendarDays,
+  LogOut, Sun, Moon, Users, MessageSquare, FolderKanban, ShoppingCart, CalendarDays, Bell,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,7 +17,10 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 const navGroups = [
   {
     label: 'Workspace',
-    items: [{ title: 'Dashboard', url: '/', icon: LayoutDashboard }],
+    items: [
+      { title: 'Dashboard', url: '/', icon: LayoutDashboard },
+      { title: 'Notificações', url: '/notificacoes', icon: Bell },
+    ],
   },
   {
     label: 'Gestão',
