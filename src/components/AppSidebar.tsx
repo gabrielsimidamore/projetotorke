@@ -7,7 +7,7 @@ import {
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { supabase, type Projeto, type Notificacao } from '@/lib/supabase';
+import { supabase, type Projeto } from '@/lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import logo from '@/assets/logo-torke.jpeg';
 import {
@@ -23,7 +23,6 @@ const navGroups = [
     label: 'Workspace',
     items: [
       { title: 'Dashboard', url: '/', icon: LayoutDashboard },
-      { title: 'Notificações', url: '/notificacoes', icon: Bell },
     ],
   },
   {
@@ -59,15 +58,15 @@ export function AppSidebar() {
   const navigate = useNavigate();
 
   const [projetosOpen, setProjetosOpen] = useState(true);
-  const [projetos, setProjetos] = useState<Projeto[]>([]);
+  const [projetos, setProjetos] = useState<Pick<Projeto, 'id' | 'nome' | 'cor' | 'foto_url'>[]>([]);
   const [notifCount, setNotifCount] = useState(0);
 
   useEffect(() => {
     supabase
       .from('projetos')
-      .select('id, nome, cor, foto_url, status')
+      .select('id, nome, cor, foto_url')
       .order('ordem')
-      .limit(12)
+      .limit(15)
       .then(({ data }) => setProjetos(data ?? []));
 
     supabase
@@ -89,7 +88,6 @@ export function AppSidebar() {
         {!collapsed && <span>{item.title}</span>}
       </NavLink>
     );
-
     if (collapsed) {
       return (
         <Tooltip>
@@ -104,6 +102,8 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarContent className="bg-sidebar border-r border-sidebar-border">
+
+        {/* Logo */}
         <SidebarGroup>
           <div className="flex items-center gap-2.5 px-3 py-4">
             <img src={logo} alt="Torke" className="w-8 h-8 rounded-lg object-contain shrink-0 border border-border" />
@@ -116,6 +116,7 @@ export function AppSidebar() {
           </div>
         </SidebarGroup>
 
+        {/* Nav groups */}
         {navGroups.map(group => (
           <SidebarGroup key={group.label} className="py-0 mb-1">
             {!collapsed && (
@@ -127,9 +128,7 @@ export function AppSidebar() {
               <SidebarMenu className="gap-0.5">
                 {group.items.map(item => (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild>
-                      <NavItem item={item} />
-                    </SidebarMenuButton>
+                    <SidebarMenuButton asChild><NavItem item={item} /></SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
               </SidebarMenu>
@@ -149,41 +148,49 @@ export function AppSidebar() {
                   <FolderKanban className="w-3.5 h-3.5" />
                   Projetos
                 </div>
-                {projetosOpen
-                  ? <ChevronDown className="w-3 h-3" />
-                  : <ChevronRight className="w-3 h-3" />}
+                {projetosOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
               </button>
 
               {projetosOpen && (
                 <SidebarGroupContent>
                   <SidebarMenu className="gap-0.5">
-                    {/* Link para lista de projetos */}
+                    {/* Ver todos */}
                     <SidebarMenuItem>
                       <SidebarMenuButton asChild>
                         <NavLink
                           to="/projetos"
-                          className="flex items-center gap-2.5 px-2.5 rounded-md transition-all duration-150 h-8 text-sm text-muted-foreground hover:text-foreground hover:bg-accent"
+                          className="flex items-center gap-2 px-2.5 rounded-md h-8 text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-all"
                           activeClassName="bg-primary/10 text-primary font-medium"
                         >
                           <LayoutDashboard className="w-3.5 h-3.5 shrink-0" />
-                          <span className="text-xs">Ver todos</span>
+                          Ver todos
                         </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
 
-                    {/* Projetos individuais */}
+                    {/* Lista de projetos com foto */}
                     {projetos.map(p => (
                       <SidebarMenuItem key={p.id}>
                         <SidebarMenuButton asChild>
                           <button
                             onClick={() => navigate(`/projetos/${p.id}`)}
-                            className="flex items-center gap-2 px-2.5 rounded-md transition-all duration-150 h-8 w-full text-left text-muted-foreground hover:text-foreground hover:bg-accent"
+                            className="flex items-center gap-2 px-2.5 rounded-md h-8 w-full text-left text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-all"
                           >
-                            <span
-                              className="w-2 h-2 rounded-full shrink-0"
-                              style={{ backgroundColor: p.cor || '#6366f1' }}
-                            />
-                            <span className="text-xs truncate">{p.nome}</span>
+                            {p.foto_url ? (
+                              <img
+                                src={p.foto_url}
+                                alt={p.nome}
+                                className="w-4 h-4 rounded-full object-cover shrink-0 border border-border"
+                              />
+                            ) : (
+                              <span
+                                className="w-4 h-4 rounded-full shrink-0 flex items-center justify-center text-white text-[9px] font-bold"
+                                style={{ backgroundColor: p.cor || '#6366f1' }}
+                              >
+                                {p.nome.charAt(0)}
+                              </span>
+                            )}
+                            <span className="truncate">{p.nome}</span>
                           </button>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
@@ -194,10 +201,10 @@ export function AppSidebar() {
                       <SidebarMenuButton asChild>
                         <button
                           onClick={() => navigate('/projetos?novo=1')}
-                          className="flex items-center gap-2 px-2.5 rounded-md transition-all duration-150 h-8 w-full text-left text-muted-foreground hover:text-foreground hover:bg-accent"
+                          className="flex items-center gap-2 px-2.5 rounded-md h-8 w-full text-left text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-all"
                         >
                           <Plus className="w-3.5 h-3.5 shrink-0" />
-                          <span className="text-xs">Novo projeto</span>
+                          Novo projeto
                         </button>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -206,15 +213,16 @@ export function AppSidebar() {
               )}
             </>
           ) : (
+            /* Colapsado */
             <SidebarGroupContent>
-              <SidebarMenu className="gap-0.5">
+              <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <NavLink
                           to="/projetos"
-                          className="flex items-center gap-2.5 px-2.5 rounded-md transition-all duration-150 h-9 text-sm text-muted-foreground hover:text-foreground hover:bg-accent"
+                          className="flex items-center px-2.5 rounded-md h-9 text-muted-foreground hover:text-foreground hover:bg-accent transition-all"
                           activeClassName="bg-primary/10 text-primary font-medium"
                         >
                           <FolderKanban className="w-4 h-4 shrink-0" />
@@ -230,37 +238,41 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
+      {/* Footer */}
       <SidebarFooter className="border-t border-sidebar-border p-2 space-y-1 bg-sidebar">
         {/* Notificações com badge */}
-        <button
-          onClick={() => navigate('/notificacoes')}
-          className="flex items-center gap-2 w-full px-2.5 h-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors relative"
-        >
-          <div className="relative shrink-0">
-            <Bell className="w-4 h-4" />
-            {notifCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold px-1 leading-none">
-                {notifCount > 99 ? '99+' : notifCount}
-              </span>
-            )}
-          </div>
-          {!collapsed && <span className="text-xs">Notificações</span>}
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={() => navigate('/notificacoes')}
+              className="flex items-center gap-2 w-full px-2.5 h-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            >
+              <div className="relative shrink-0">
+                <Bell className="w-4 h-4" />
+                {notifCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 min-w-[15px] h-[15px] flex items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold px-0.5 leading-none">
+                    {notifCount > 99 ? '99+' : notifCount}
+                  </span>
+                )}
+              </div>
+              {!collapsed && <span className="text-xs">Notificações</span>}
+            </button>
+          </TooltipTrigger>
+          {collapsed && <TooltipContent side="right" className="text-xs">Notificações{notifCount > 0 ? ` (${notifCount})` : ''}</TooltipContent>}
+        </Tooltip>
 
-        <Button
-          variant="ghost" size="sm" onClick={toggleTheme}
-          className="w-full justify-start h-8 text-xs gap-2 rounded-md px-2.5 text-muted-foreground hover:text-foreground"
-        >
+        <Button variant="ghost" size="sm" onClick={toggleTheme}
+          className="w-full justify-start h-8 text-xs gap-2 rounded-md px-2.5 text-muted-foreground hover:text-foreground">
           {theme === 'light' ? <Moon className="w-4 h-4 shrink-0" /> : <Sun className="w-4 h-4 shrink-0" />}
           {!collapsed && (theme === 'light' ? 'Modo Escuro' : 'Modo Claro')}
         </Button>
+
         {!collapsed && user && (
           <p className="text-[11px] px-2.5 truncate text-muted-foreground">{user.email}</p>
         )}
-        <Button
-          variant="ghost" size="sm" onClick={signOut}
-          className="w-full justify-start h-8 text-xs gap-2 rounded-md px-2.5 text-muted-foreground hover:text-foreground"
-        >
+
+        <Button variant="ghost" size="sm" onClick={signOut}
+          className="w-full justify-start h-8 text-xs gap-2 rounded-md px-2.5 text-muted-foreground hover:text-foreground">
           <LogOut className="w-4 h-4 shrink-0" />
           {!collapsed && 'Sair'}
         </Button>
