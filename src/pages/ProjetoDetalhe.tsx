@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, CalendarDays, CheckCircle2, CircleDollarSign,
-  Loader2, Plus, Save, Target, Trash2,
+  Loader2, Plus, Save, Target, Trash2, Users, MessageSquare,
+  Building2, Phone, Mail, CheckCheck, Calendar,
 } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { useToast } from '@/hooks/use-toast';
@@ -42,13 +43,16 @@ const TAREFA_PRIORIDADE = [
   { value: 'urgente', label: 'Urgente' },
 ];
 
+const REUNIAO_TIPO = ['interna', 'cliente', 'parceiro', 'outro'] as const;
+const REUNIAO_STATUS = ['agendada', 'realizada', 'cancelada', 'adiada'] as const;
+
 const formatCurrency = (v?: number | null) =>
   v == null ? '—' : `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
 
 const formatDate = (v?: string | null) =>
   v ? new Date(v).toLocaleDateString('pt-BR') : '—';
 
-const getBadgeClass = (status?: string | null) => {
+function getBadgeStyle(status?: string | null, accentColor = '#6366f1') {
   switch (status) {
     case 'aprovado': case 'concluido': case 'receita':
       return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300';
@@ -65,9 +69,20 @@ const getBadgeClass = (status?: string | null) => {
     default:
       return 'bg-muted text-muted-foreground';
   }
-};
+}
 
 const TAREFA_LABELS: Record<string, string> = Object.fromEntries(TAREFA_STATUS.map(s => [s.value, s.label]));
+
+const CANAL_LABELS: Record<string, string> = {
+  ligacao: 'Ligação', reuniao: 'Reunião', email: 'E-mail',
+  whatsapp: 'WhatsApp', visita: 'Visita', outro: 'Outro',
+  linkedin: 'LinkedIn', instagram: 'Instagram', presencial: 'Presencial',
+};
+
+const STATUS_INTERACAO: Record<string, string> = {
+  aberto: 'Aberto', pendente: 'Pendente', aguardando: 'Aguardando',
+  resolvido: 'Resolvido', respondido: 'Respondido', aprovado: 'Aprovado', concluido: 'Concluído',
+};
 
 const ProjetoDetalhe = () => {
   const { id } = useParams();
@@ -80,6 +95,9 @@ const ProjetoDetalhe = () => {
   const [custos, setCustos] = useState<CustoProjeto[]>([]);
   const [metricas, setMetricas] = useState<ProjetoMetrica[]>([]);
   const [ideias, setIdeias] = useState<ProjetoIdeia[]>([]);
+  const [interacoes, setInteracoes] = useState<any[]>([]);
+  const [reunioes, setReunioes] = useState<any[]>([]);
+  const [clientes, setClientes] = useState<any[]>([]);
 
   // Nova tarefa
   const [taskDialog, setTaskDialog] = useState(false);
@@ -89,33 +107,59 @@ const ProjetoDetalhe = () => {
     status: 'pendente', prioridade: 'media', data_prevista: '',
   });
 
+  // Nova reunião
+  const [reuniaoDialog, setReuniaoDialog] = useState(false);
+  const [savingReuniao, setSavingReuniao] = useState(false);
+  const [reuniaoForm, setReuniaoForm] = useState({
+    titulo: '', data: '', horario_inicio: '', horario_fim: '',
+    local: '', tipo: 'cliente' as typeof REUNIAO_TIPO[number],
+    assunto: '', pauta: '', observacoes: '', participantes: '',
+    responsavel: '', status: 'agendada' as typeof REUNIAO_STATUS[number],
+  });
+
   // Notas
   const [notas, setNotas] = useState('');
   const [savingNotas, setSavingNotas] = useState(false);
   const [notasEdited, setNotasEdited] = useState(false);
 
+  const accentColor = projeto?.cor || '#6366f1';
+
   const loadData = async () => {
     if (!id) { setLoading(false); return; }
     setLoading(true);
     const projetoQuery = await supabase
-      .from('projetos').select('*, clientes(nome, empresa)').eq('id', id).maybeSingle();
+      .from('projetos').select('*, clientes(id, nome, empresa, telefone, email, segmento, cargo, cidade, estado)').eq('id', id).maybeSingle();
     if (projetoQuery.error) {
       toast({ title: 'Erro ao carregar projeto', description: projetoQuery.error.message, variant: 'destructive' });
       setLoading(false); return;
     }
-    setProjeto(projetoQuery.data ?? null);
-    setNotas(projetoQuery.data?.observacoes ?? '');
+    const p = projetoQuery.data;
+    setProjeto(p ?? null);
+    setNotas(p?.observacoes ?? '');
 
-    const [t, c, m, i] = await Promise.all([
+    const [t, c, m, i, int, reu] = await Promise.all([
       supabase.from('tarefas').select('*').eq('projeto_id', id).order('created_at', { ascending: false }),
       supabase.from('custos_projeto').select('*').eq('projeto_id', id).order('data', { ascending: false }),
       supabase.from('projeto_metricas').select('*').eq('projeto_id', id).order('data', { ascending: false }),
       supabase.from('projeto_ideias').select('*').eq('projeto_id', id).order('created_at', { ascending: false }),
+      supabase.from('interacoes').select('*, clientes(id, nome, empresa, telefone, email)').eq('projeto_id', id).order('data_interacao', { ascending: false }),
+      supabase.from('reunioes').select('*').eq('projeto_id', id).order('data', { ascending: false }),
     ]);
     setTarefas(t.data ?? []);
     setCustos(c.data ?? []);
     setMetricas(m.data ?? []);
     setIdeias(i.data ?? []);
+    setInteracoes(int.data ?? []);
+    setReunioes(reu.data ?? []);
+
+    // If project has a client, load client info
+    if (p?.cliente_id) {
+      const { data: clienteData } = await supabase.from('clientes').select('*').eq('id', p.cliente_id).single();
+      setClientes(clienteData ? [clienteData] : []);
+    } else {
+      setClientes([]);
+    }
+
     setLoading(false);
   };
 
@@ -134,12 +178,9 @@ const ProjetoDetalhe = () => {
     if (!id) return;
     setSavingTask(true);
     const { error } = await supabase.from('tarefas').insert({
-      projeto_id: id,
-      titulo: taskForm.titulo,
-      descricao: taskForm.descricao || null,
-      responsavel: taskForm.responsavel || null,
-      status: taskForm.status,
-      prioridade: taskForm.prioridade,
+      projeto_id: id, titulo: taskForm.titulo,
+      descricao: taskForm.descricao || null, responsavel: taskForm.responsavel || null,
+      status: taskForm.status, prioridade: taskForm.prioridade,
       data_prevista: taskForm.data_prevista || null,
     });
     setSavingTask(false);
@@ -155,6 +196,35 @@ const ProjetoDetalhe = () => {
     if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
     setTarefas(prev => prev.filter(t => t.id !== tarefaId));
     toast({ title: 'Tarefa removida' });
+  };
+
+  const handleAddReuniao = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!id) return;
+    setSavingReuniao(true);
+    const { error } = await supabase.from('reunioes').insert({
+      titulo: reuniaoForm.titulo, data: reuniaoForm.data,
+      horario_inicio: reuniaoForm.horario_inicio, horario_fim: reuniaoForm.horario_fim || null,
+      local: reuniaoForm.local || null, tipo: reuniaoForm.tipo,
+      assunto: reuniaoForm.assunto, pauta: reuniaoForm.pauta || null,
+      observacoes: reuniaoForm.observacoes || null,
+      participantes: reuniaoForm.participantes ? reuniaoForm.participantes.split(',').map(s => s.trim()).filter(Boolean) : null,
+      responsavel: reuniaoForm.responsavel || null,
+      status: reuniaoForm.status, projeto_id: id,
+    });
+    setSavingReuniao(false);
+    if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+    toast({ title: 'Reunião adicionada!' });
+    setReuniaoForm({ titulo: '', data: '', horario_inicio: '', horario_fim: '', local: '', tipo: 'cliente', assunto: '', pauta: '', observacoes: '', participantes: '', responsavel: '', status: 'agendada' });
+    setReuniaoDialog(false);
+    void loadData();
+  };
+
+  const handleDeleteReuniao = async (reuniaoId: string) => {
+    const { error } = await supabase.from('reunioes').delete().eq('id', reuniaoId);
+    if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+    setReunioes(prev => prev.filter(r => r.id !== reuniaoId));
+    toast({ title: 'Reunião removida' });
   };
 
   const handleSaveNotas = async () => {
@@ -175,7 +245,6 @@ const ProjetoDetalhe = () => {
     <Layout>
       <div className="max-w-2xl mx-auto py-12 text-center space-y-4">
         <h1 className="text-2xl font-bold">Projeto não encontrado</h1>
-        <p className="text-muted-foreground">O item pode ter sido removido ou o link não existe.</p>
         <Button onClick={() => navigate('/projetos')} className="gap-2"><ArrowLeft className="w-4 h-4" />Voltar</Button>
       </div>
     </Layout>
@@ -183,70 +252,91 @@ const ProjetoDetalhe = () => {
 
   return (
     <Layout>
+      {/* Accent color injected via CSS variable */}
+      <style>{`:root { --projeto-accent: ${accentColor}; }`}</style>
       <div className="space-y-6 animate-fade-in">
 
-        {/* Header */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="space-y-2">
-            <Button variant="outline" size="sm" onClick={() => navigate('/projetos')} className="gap-2 w-fit">
-              <ArrowLeft className="w-4 h-4" />Voltar
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">{projeto.nome}</h1>
-              <p className="text-sm text-muted-foreground">
-                {projeto.empresa || projeto.clientes?.empresa || projeto.clientes?.nome || 'Sem empresa vinculada'}
-              </p>
+        {/* Header with accent color strip */}
+        <div
+          className="rounded-xl overflow-hidden border border-border"
+          style={{ borderColor: `${accentColor}40` }}
+        >
+          {/* Color banner */}
+          <div
+            className="h-2 w-full"
+            style={{ background: `linear-gradient(90deg, ${accentColor}, ${accentColor}88)` }}
+          />
+          <div className="p-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 bg-card">
+            <div className="space-y-1.5">
+              <Button variant="outline" size="sm" onClick={() => navigate('/projetos')} className="gap-2 w-fit">
+                <ArrowLeft className="w-4 h-4" />Voltar
+              </Button>
+              <div className="flex items-center gap-3">
+                {projeto.foto_url ? (
+                  <img src={projeto.foto_url} alt={projeto.nome} className="w-10 h-10 rounded-lg object-cover border border-border" />
+                ) : (
+                  <div
+                    className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-lg shrink-0"
+                    style={{ backgroundColor: accentColor }}
+                  >
+                    {projeto.nome.charAt(0)}
+                  </div>
+                )}
+                <div>
+                  <h1 className="text-2xl font-bold text-foreground">{projeto.nome}</h1>
+                  <p className="text-sm text-muted-foreground">
+                    {projeto.empresa || projeto.clientes?.empresa || projeto.clientes?.nome || 'Sem empresa vinculada'}
+                  </p>
+                </div>
+              </div>
             </div>
+            <Badge
+              className="self-start mt-1"
+              style={{ backgroundColor: `${accentColor}20`, color: accentColor, borderColor: `${accentColor}40` }}
+            >
+              {STATUS_LABELS[projeto.status] ?? projeto.status}
+            </Badge>
           </div>
-          <Badge className={`${getBadgeClass(projeto.status)} self-start mt-1`}>
-            {STATUS_LABELS[projeto.status] ?? projeto.status}
-          </Badge>
         </div>
 
-        {/* Capa + resumo */}
-        <Card className="overflow-hidden">
-          <div className="h-32 w-full flex items-center justify-center"
-            style={{ backgroundColor: projeto.foto_url ? undefined : (projeto.cor || '#6366f1') }}>
-            {projeto.foto_url
-              ? <img src={projeto.foto_url} alt={projeto.nome} className="w-full h-full object-cover" />
-              : <span className="text-6xl font-bold text-white/25 select-none">{projeto.nome.charAt(0)}</span>}
+        {/* Summary cards */}
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+          {[
+            { label: 'Valor estimado', value: formatCurrency(projeto.valor_estimado), icon: CircleDollarSign },
+            { label: 'Tarefas', value: `${resumo.concluidas}/${tarefas.length} (${resumo.pct}%)`, icon: CheckCircle2 },
+            { label: 'Saldo', value: formatCurrency(resumo.saldo), icon: Target },
+            { label: 'Fechamento', value: formatDate(projeto.data_fechamento_prevista), icon: CalendarDays },
+          ].map(({ label, value, icon: Icon }) => (
+            <Card key={label} style={{ borderColor: `${accentColor}30` }}>
+              <CardContent className="p-4 flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground">{label}</p>
+                  <p className="text-base font-semibold leading-tight mt-0.5">{value}</p>
+                </div>
+                <Icon className="w-5 h-5 shrink-0" style={{ color: accentColor }} />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {projeto.descricao && (
+          <div className="p-4 rounded-xl border" style={{ backgroundColor: `${accentColor}08`, borderColor: `${accentColor}30` }}>
+            <p className="text-xs font-medium text-muted-foreground mb-1">Descrição</p>
+            <p className="text-sm text-foreground/90 whitespace-pre-wrap">{projeto.descricao}</p>
           </div>
-          <CardContent className="pt-5 space-y-4">
-            <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-              {[
-                { label: 'Valor estimado', value: formatCurrency(projeto.valor_estimado), icon: CircleDollarSign },
-                { label: 'Tarefas', value: `${resumo.concluidas}/${tarefas.length} (${resumo.pct}%)`, icon: CheckCircle2 },
-                { label: 'Saldo', value: formatCurrency(resumo.saldo), icon: Target },
-                { label: 'Fechamento', value: formatDate(projeto.data_fechamento_prevista), icon: CalendarDays },
-              ].map(({ label, value, icon: Icon }) => (
-                <Card key={label}>
-                  <CardContent className="p-4 flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-muted-foreground">{label}</p>
-                      <p className="text-base font-semibold leading-tight mt-0.5">{value}</p>
-                    </div>
-                    <Icon className="w-5 h-5 text-primary shrink-0" />
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-            {projeto.descricao && (
-              <div className="p-4 rounded-xl bg-muted/60">
-                <p className="text-xs font-medium text-muted-foreground mb-1">Descrição</p>
-                <p className="text-sm text-foreground/90 whitespace-pre-wrap">{projeto.descricao}</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        )}
 
         {/* Tabs */}
         <Tabs defaultValue="tarefas" className="space-y-4">
           <TabsList className="flex w-full overflow-x-auto gap-1">
             <TabsTrigger value="tarefas" className="flex-1">Tarefas</TabsTrigger>
-            <TabsTrigger value="notas" className="flex-1">Notas</TabsTrigger>
+            <TabsTrigger value="reunioes" className="flex-1">Reuniões</TabsTrigger>
+            <TabsTrigger value="interacoes" className="flex-1">Interações</TabsTrigger>
+            <TabsTrigger value="clientes" className="flex-1">Clientes</TabsTrigger>
             <TabsTrigger value="financeiro" className="flex-1">Financeiro</TabsTrigger>
             <TabsTrigger value="metricas" className="flex-1">Métricas</TabsTrigger>
             <TabsTrigger value="ideias" className="flex-1">Ideias</TabsTrigger>
+            <TabsTrigger value="notas" className="flex-1">Notas</TabsTrigger>
           </TabsList>
 
           {/* ─── TAREFAS ─── */}
@@ -259,7 +349,7 @@ const ProjetoDetalhe = () => {
                 </div>
                 <Dialog open={taskDialog} onOpenChange={setTaskDialog}>
                   <DialogTrigger asChild>
-                    <Button size="sm" className="gap-1.5 shrink-0">
+                    <Button size="sm" className="gap-1.5 shrink-0" style={{ backgroundColor: accentColor, borderColor: accentColor }}>
                       <Plus className="w-3.5 h-3.5" />Nova Tarefa
                     </Button>
                   </DialogTrigger>
@@ -272,7 +362,7 @@ const ProjetoDetalhe = () => {
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-xs">Descrição</Label>
-                        <Textarea value={taskForm.descricao} onChange={e => setTaskForm({ ...taskForm, descricao: e.target.value })} rows={2} placeholder="Detalhes opcionais..." />
+                        <Textarea value={taskForm.descricao} onChange={e => setTaskForm({ ...taskForm, descricao: e.target.value })} rows={2} />
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1.5">
@@ -293,14 +383,14 @@ const ProjetoDetalhe = () => {
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1.5">
                           <Label className="text-xs">Responsável</Label>
-                          <Input value={taskForm.responsavel} onChange={e => setTaskForm({ ...taskForm, responsavel: e.target.value })} placeholder="Nome ou email" />
+                          <Input value={taskForm.responsavel} onChange={e => setTaskForm({ ...taskForm, responsavel: e.target.value })} />
                         </div>
                         <div className="space-y-1.5">
                           <Label className="text-xs">Data prevista</Label>
                           <Input type="date" value={taskForm.data_prevista} onChange={e => setTaskForm({ ...taskForm, data_prevista: e.target.value })} />
                         </div>
                       </div>
-                      <Button type="submit" className="w-full" disabled={savingTask}>
+                      <Button type="submit" className="w-full" disabled={savingTask} style={{ backgroundColor: accentColor, borderColor: accentColor }}>
                         {savingTask && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Adicionar Tarefa
                       </Button>
                     </form>
@@ -317,17 +407,15 @@ const ProjetoDetalhe = () => {
                   </div>
                 ) : (
                   tarefas.map(tarefa => (
-                    <div key={tarefa.id} className="border border-border rounded-xl p-4 space-y-2 group">
+                    <div key={tarefa.id} className="border border-border rounded-xl p-4 space-y-2 group" style={{ borderLeftColor: accentColor, borderLeftWidth: 3 }}>
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-foreground truncate">{tarefa.titulo}</p>
-                          {tarefa.descricao && (
-                            <p className="text-sm text-muted-foreground whitespace-pre-wrap mt-0.5">{tarefa.descricao}</p>
-                          )}
+                          {tarefa.descricao && <p className="text-sm text-muted-foreground whitespace-pre-wrap mt-0.5">{tarefa.descricao}</p>}
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
-                          <Badge className={getBadgeClass(tarefa.status)}>{TAREFA_LABELS[tarefa.status] ?? tarefa.status}</Badge>
-                          <Badge className={getBadgeClass(tarefa.prioridade)} variant="outline">{tarefa.prioridade}</Badge>
+                          <Badge className={getBadgeStyle(tarefa.status)}>{TAREFA_LABELS[tarefa.status] ?? tarefa.status}</Badge>
+                          <Badge className={getBadgeStyle(tarefa.prioridade)} variant="outline">{tarefa.prioridade}</Badge>
                           <button
                             onClick={() => handleDeleteTarefa(tarefa.id)}
                             className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive">
@@ -346,38 +434,216 @@ const ProjetoDetalhe = () => {
             </Card>
           </TabsContent>
 
-          {/* ─── NOTAS ─── */}
-          <TabsContent value="notas">
+          {/* ─── REUNIÕES ─── */}
+          <TabsContent value="reunioes">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-3">
                 <div>
-                  <CardTitle className="text-lg">Notas e Observações</CardTitle>
-                  <CardDescription>Anote informações importantes, pontos de atenção ou decisões do projeto.</CardDescription>
+                  <CardTitle className="text-lg">Reuniões do Projeto</CardTitle>
+                  <CardDescription>Reuniões vinculadas a este projeto.</CardDescription>
                 </div>
-                {notasEdited && (
-                  <Button size="sm" onClick={handleSaveNotas} disabled={savingNotas} className="gap-1.5 shrink-0">
-                    {savingNotas ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                    Salvar
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => navigate('/reunioes')} className="gap-1.5 shrink-0 text-xs">
+                    <Calendar className="w-3.5 h-3.5" />Ver todas
                   </Button>
+                  <Dialog open={reuniaoDialog} onOpenChange={setReuniaoDialog}>
+                    <DialogTrigger asChild>
+                      <Button size="sm" className="gap-1.5 shrink-0" style={{ backgroundColor: accentColor, borderColor: accentColor }}>
+                        <Plus className="w-3.5 h-3.5" />Nova Reunião
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+                      <DialogHeader><DialogTitle>Nova Reunião</DialogTitle></DialogHeader>
+                      <form onSubmit={handleAddReuniao} className="space-y-4">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Título *</Label>
+                          <Input value={reuniaoForm.titulo} onChange={e => setReuniaoForm({ ...reuniaoForm, titulo: e.target.value })} required />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1.5">
+                            <Label className="text-xs">Data *</Label>
+                            <Input type="date" value={reuniaoForm.data} onChange={e => setReuniaoForm({ ...reuniaoForm, data: e.target.value })} required />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label className="text-xs">Horário Início *</Label>
+                            <Input type="time" value={reuniaoForm.horario_inicio} onChange={e => setReuniaoForm({ ...reuniaoForm, horario_inicio: e.target.value })} required />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1.5">
+                            <Label className="text-xs">Horário Fim</Label>
+                            <Input type="time" value={reuniaoForm.horario_fim} onChange={e => setReuniaoForm({ ...reuniaoForm, horario_fim: e.target.value })} />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label className="text-xs">Tipo</Label>
+                            <Select value={reuniaoForm.tipo} onValueChange={v => setReuniaoForm({ ...reuniaoForm, tipo: v as typeof REUNIAO_TIPO[number] })}>
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {REUNIAO_TIPO.map(t => <SelectItem key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Assunto *</Label>
+                          <Input value={reuniaoForm.assunto} onChange={e => setReuniaoForm({ ...reuniaoForm, assunto: e.target.value })} required />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Local / Link</Label>
+                          <Input value={reuniaoForm.local} onChange={e => setReuniaoForm({ ...reuniaoForm, local: e.target.value })} />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Participantes (separados por vírgula)</Label>
+                          <Input value={reuniaoForm.participantes} onChange={e => setReuniaoForm({ ...reuniaoForm, participantes: e.target.value })} placeholder="João, Maria, Pedro" />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Pauta</Label>
+                          <Textarea value={reuniaoForm.pauta} onChange={e => setReuniaoForm({ ...reuniaoForm, pauta: e.target.value })} rows={3} />
+                        </div>
+                        <Button type="submit" className="w-full" disabled={savingReuniao} style={{ backgroundColor: accentColor }}>
+                          {savingReuniao && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Adicionar Reunião
+                        </Button>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {reunioes.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-4 text-center">Nenhuma reunião vinculada a este projeto.</p>
+                ) : (
+                  reunioes.map(r => (
+                    <div key={r.id} className="border border-border rounded-xl p-4 group" style={{ borderLeftColor: accentColor, borderLeftWidth: 3 }}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-foreground">{r.titulo}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{r.assunto}</p>
+                          <div className="flex flex-wrap gap-3 mt-2 text-xs text-muted-foreground">
+                            <span>📅 {r.data.split('-').reverse().join('/')}</span>
+                            <span>🕐 {r.horario_inicio}{r.horario_fim ? ` – ${r.horario_fim}` : ''}</span>
+                            {r.local && <span>📍 {r.local}</span>}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Badge className={getBadgeStyle(r.status)}>{r.status}</Badge>
+                          <button
+                            onClick={() => handleDeleteReuniao(r.id)}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ─── INTERAÇÕES ─── */}
+          <TabsContent value="interacoes">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-3">
+                <div>
+                  <CardTitle className="text-lg">Interações do Projeto</CardTitle>
+                  <CardDescription>Todas as interações vinculadas a este projeto.</CardDescription>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => navigate('/interacoes')} className="gap-1.5 shrink-0 text-xs">
+                  <MessageSquare className="w-3.5 h-3.5" />Ver todas
+                </Button>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {interacoes.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-4 text-center">Nenhuma interação vinculada. Ao registrar interações, vincule-as a este projeto.</p>
+                ) : (
+                  interacoes.map(int => (
+                    <div key={int.id} className="border border-border rounded-xl p-4" style={{ borderLeftColor: accentColor, borderLeftWidth: 3 }}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="font-medium text-foreground text-sm">{int.clientes?.nome || 'Cliente'}</p>
+                            {int.clientes?.empresa && <span className="text-xs text-muted-foreground">{int.clientes.empresa}</span>}
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">{int.mensagem || 'Sem mensagem'}</p>
+                          <div className="flex flex-wrap gap-2 mt-1.5 text-xs text-muted-foreground">
+                            <span>{CANAL_LABELS[int.canal] || int.canal}</span>
+                            <span>·</span>
+                            <span>{new Date(int.data_interacao).toLocaleDateString('pt-BR')}</span>
+                          </div>
+                        </div>
+                        <Badge className={getBadgeStyle(int.status)}>
+                          {STATUS_INTERACAO[int.status] || int.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ─── CLIENTES ─── */}
+          <TabsContent value="clientes">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Users className="w-5 h-5" style={{ color: accentColor }} />
+                  Cliente Vinculado
+                </CardTitle>
+                <CardDescription>Cliente associado a este projeto.</CardDescription>
               </CardHeader>
               <CardContent>
-                <Textarea
-                  value={notas}
-                  onChange={e => { setNotas(e.target.value); setNotasEdited(true); }}
-                  rows={12}
-                  placeholder="Escreva aqui suas anotações, observações, decisões tomadas, pontos de atenção..."
-                  className="resize-y text-sm leading-relaxed"
-                />
-                <div className="flex items-center justify-between mt-3">
-                  <p className="text-xs text-muted-foreground">
-                    {notasEdited ? 'Alterações não salvas' : 'Salvo automaticamente ao clicar em Salvar'}
-                  </p>
-                  <Button size="sm" onClick={handleSaveNotas} disabled={savingNotas || !notasEdited} className="gap-1.5">
-                    {savingNotas ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                    Salvar notas
-                  </Button>
-                </div>
+                {clientes.length === 0 ? (
+                  <div className="text-center py-8 space-y-2">
+                    <p className="text-sm text-muted-foreground">Nenhum cliente vinculado.</p>
+                    <Button size="sm" variant="outline" onClick={() => navigate('/clientes')} className="gap-1.5">
+                      <Users className="w-3.5 h-3.5" />Gerenciar clientes
+                    </Button>
+                  </div>
+                ) : (
+                  clientes.map(cliente => (
+                    <div key={cliente.id} className="border border-border rounded-xl p-5 space-y-4" style={{ borderColor: `${accentColor}40` }}>
+                      <div className="flex items-start gap-4">
+                        <div
+                          className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-xl shrink-0"
+                          style={{ backgroundColor: accentColor }}
+                        >
+                          {cliente.nome?.charAt(0) || '?'}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-lg text-foreground">{cliente.nome}</p>
+                          <p className="text-sm text-muted-foreground flex items-center gap-1">
+                            <Building2 className="w-3.5 h-3.5" />
+                            {cliente.empresa || '—'}
+                          </p>
+                          {cliente.cargo && <p className="text-xs text-muted-foreground mt-0.5">{cliente.cargo}</p>}
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        {cliente.telefone && (
+                          <a href={`https://wa.me/55${cliente.telefone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
+                            className="flex items-center gap-2 p-2.5 rounded-lg bg-muted hover:bg-muted/80 transition-colors">
+                            <Phone className="w-4 h-4 text-green-600 shrink-0" />
+                            <span className="text-xs truncate">{cliente.telefone}</span>
+                          </a>
+                        )}
+                        {cliente.email && (
+                          <a href={`mailto:${cliente.email}`}
+                            className="flex items-center gap-2 p-2.5 rounded-lg bg-muted hover:bg-muted/80 transition-colors">
+                            <Mail className="w-4 h-4 text-blue-600 shrink-0" />
+                            <span className="text-xs truncate">{cliente.email}</span>
+                          </a>
+                        )}
+                      </div>
+                      {(cliente.cidade || cliente.estado || cliente.segmento) && (
+                        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                          {cliente.cidade && <span>📍 {cliente.cidade}{cliente.estado ? `, ${cliente.estado}` : ''}</span>}
+                          {cliente.segmento && <span>🏷️ {cliente.segmento}</span>}
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -390,7 +656,7 @@ const ProjetoDetalhe = () => {
                 { label: 'Despesas', value: formatCurrency(resumo.despesas), cls: 'text-red-500' },
                 { label: 'Saldo', value: formatCurrency(resumo.saldo), cls: resumo.saldo >= 0 ? 'text-green-600' : 'text-red-500' },
               ].map(({ label, value, cls }) => (
-                <Card key={label}>
+                <Card key={label} style={{ borderColor: `${accentColor}30` }}>
                   <CardContent className="p-4">
                     <p className="text-xs text-muted-foreground">{label}</p>
                     <p className={`text-lg font-bold ${cls}`}>{value}</p>
@@ -401,7 +667,6 @@ const ProjetoDetalhe = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Lançamentos</CardTitle>
-                <CardDescription>Despesas e receitas registradas.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {custos.length === 0 ? (
@@ -414,7 +679,7 @@ const ProjetoDetalhe = () => {
                         <p className="text-sm text-muted-foreground">{item.categoria} • {formatDate(item.data)}</p>
                       </div>
                       <div className="text-right">
-                        <Badge className={getBadgeClass(item.tipo)}>{item.tipo}</Badge>
+                        <Badge className={getBadgeStyle(item.tipo)}>{item.tipo}</Badge>
                         <p className="font-semibold mt-1">{formatCurrency(item.valor)}</p>
                       </div>
                     </div>
@@ -436,13 +701,13 @@ const ProjetoDetalhe = () => {
                   <p className="text-sm text-muted-foreground py-4 text-center">Nenhuma métrica registrada.</p>
                 ) : (
                   metricas.map(m => (
-                    <div key={m.id} className="border border-border rounded-xl p-4 flex items-center justify-between">
+                    <div key={m.id} className="border border-border rounded-xl p-4 flex items-center justify-between" style={{ borderLeftColor: accentColor, borderLeftWidth: 3 }}>
                       <div>
                         <p className="font-medium">{m.nome}</p>
                         <p className="text-xs text-muted-foreground">Atualizado em {formatDate(m.data)}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-lg font-semibold">{m.valor} {m.unidade}</p>
+                        <p className="text-lg font-semibold" style={{ color: accentColor }}>{m.valor} {m.unidade}</p>
                         <p className="text-xs text-muted-foreground">Meta: {m.meta ?? '—'} {m.unidade}</p>
                       </div>
                     </div>
@@ -464,10 +729,10 @@ const ProjetoDetalhe = () => {
                   <p className="text-sm text-muted-foreground py-4 text-center">Nenhuma ideia cadastrada.</p>
                 ) : (
                   ideias.map(ideia => (
-                    <div key={ideia.id} className="border border-border rounded-xl p-4 space-y-1.5">
+                    <div key={ideia.id} className="border border-border rounded-xl p-4 space-y-1.5" style={{ borderLeftColor: accentColor, borderLeftWidth: 3 }}>
                       <div className="flex items-center justify-between gap-2">
                         <p className="font-medium">{ideia.titulo}</p>
-                        <Badge className={getBadgeClass(ideia.status ?? 'pendente')}>
+                        <Badge className={getBadgeStyle(ideia.status ?? 'pendente')}>
                           {{ pendente: 'Pendente', em_andamento: 'Em andamento', aprovado: 'Aprovado', descartado: 'Descartado' }[ideia.status ?? 'pendente']}
                         </Badge>
                       </div>
@@ -475,6 +740,42 @@ const ProjetoDetalhe = () => {
                     </div>
                   ))
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ─── NOTAS ─── */}
+          <TabsContent value="notas">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-3">
+                <div>
+                  <CardTitle className="text-lg">Notas e Observações</CardTitle>
+                  <CardDescription>Anote informações importantes, pontos de atenção ou decisões do projeto.</CardDescription>
+                </div>
+                {notasEdited && (
+                  <Button size="sm" onClick={handleSaveNotas} disabled={savingNotas} className="gap-1.5 shrink-0" style={{ backgroundColor: accentColor }}>
+                    {savingNotas ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                    Salvar
+                  </Button>
+                )}
+              </CardHeader>
+              <CardContent>
+                <Textarea
+                  value={notas}
+                  onChange={e => { setNotas(e.target.value); setNotasEdited(true); }}
+                  rows={12}
+                  placeholder="Escreva aqui suas anotações..."
+                  className="resize-y text-sm leading-relaxed"
+                />
+                <div className="flex items-center justify-between mt-3">
+                  <p className="text-xs text-muted-foreground">
+                    {notasEdited ? 'Alterações não salvas' : 'Notas salvas'}
+                  </p>
+                  <Button size="sm" onClick={handleSaveNotas} disabled={savingNotas || !notasEdited} className="gap-1.5" style={{ backgroundColor: accentColor }}>
+                    {savingNotas ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                    Salvar notas
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import {
   Plus, ChevronLeft, ChevronRight, Clock, MapPin, Users,
-  Pencil, Trash2, Loader2, Calendar, X, Check, AlertCircle
+  Pencil, Trash2, Loader2, Calendar, X, FolderKanban,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -72,13 +72,16 @@ const emptyForm = {
   participantes: '',
   responsavel: '',
   status: 'agendada' as Reuniao['status'],
+  projeto_id: '',
 };
 
 export default function Reunioes() {
   const { toast } = useToast();
   const [reunioes, setReunioes] = useState<Reuniao[]>([]);
+  const [projetos, setProjetos] = useState<{ id: string; nome: string; cor: string | null }[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [projetoFilter, setProjetoFilter] = useState('todos');
 
   const today = new Date();
   const [calendarDate, setCalendarDate] = useState({ year: today.getFullYear(), month: today.getMonth() });
@@ -92,11 +95,12 @@ export default function Reunioes() {
   const [deleting, setDeleting] = useState<string | null>(null);
 
   const fetchReunioes = async () => {
-    const { data, error } = await supabase
-      .from('reunioes')
-      .select('*')
-      .order('data', { ascending: false });
+    const [{ data, error }, { data: projData }] = await Promise.all([
+      supabase.from('reunioes').select('*, projetos(id, nome, cor)').order('data', { ascending: false }),
+      supabase.from('projetos').select('id, nome, cor').order('nome'),
+    ]);
     if (!error) setReunioes(data ?? []);
+    setProjetos(projData ?? []);
     setLoading(false);
   };
 
@@ -179,6 +183,7 @@ export default function Reunioes() {
       participantes: form.participantes ? form.participantes.split(',').map(s => s.trim()).filter(Boolean) : null,
       responsavel: form.responsavel || null,
       status: form.status,
+      projeto_id: form.projeto_id || null,
     };
 
     let error;
@@ -211,18 +216,26 @@ export default function Reunioes() {
     }
   };
 
+  const reunioesFiltradas = useMemo(() => {
+    if (projetoFilter === 'todos') return reunioes;
+    if (projetoFilter === 'sem_projeto') return reunioes.filter(r => !r.projeto_id);
+    return reunioes.filter(r => r.projeto_id === projetoFilter);
+  }, [reunioes, projetoFilter]);
+
   const reunioesDoMes = useMemo(() => {
     const { year, month } = calendarDate;
-    return reunioes.filter(r => {
+    return reunioesFiltradas.filter(r => {
       const d = new Date(r.data + 'T00:00:00');
       return d.getFullYear() === year && d.getMonth() === month;
     }).sort((a, b) => a.data.localeCompare(b.data) || a.horario_inicio.localeCompare(b.horario_inicio));
-  }, [reunioes, calendarDate]);
+  }, [reunioesFiltradas, calendarDate]);
 
   const reunioesDoDia = useMemo(() => {
     if (!selectedDate) return [];
-    return (reunioesByDate[selectedDate] ?? []).sort((a, b) => a.horario_inicio.localeCompare(b.horario_inicio));
-  }, [selectedDate, reunioesByDate]);
+    return (reunioesByDate[selectedDate] ?? [])
+      .filter(r => projetoFilter === 'todos' || (projetoFilter === 'sem_projeto' ? !r.projeto_id : r.projeto_id === projetoFilter))
+      .sort((a, b) => a.horario_inicio.localeCompare(b.horario_inicio));
+  }, [selectedDate, reunioesByDate, projetoFilter]);
 
   const listToShow = selectedDate ? reunioesDoDia : reunioesDoMes;
 
@@ -237,10 +250,31 @@ export default function Reunioes() {
               {reunioes.length} reunião{reunioes.length !== 1 ? 'ões' : ''} no total
             </p>
           </div>
-          <Button onClick={() => openNew()} className="gap-2">
-            <Plus className="w-4 h-4" />
-            Nova Reunião
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* Filtro por projeto */}
+            <Select value={projetoFilter} onValueChange={setProjetoFilter}>
+              <SelectTrigger className="w-[160px] h-9 text-xs">
+                <FolderKanban className="w-3.5 h-3.5 mr-1.5 shrink-0" />
+                <SelectValue placeholder="Todos projetos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos projetos</SelectItem>
+                <SelectItem value="sem_projeto">Sem projeto</SelectItem>
+                {projetos.map(p => (
+                  <SelectItem key={p.id} value={p.id}>
+                    <span className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p.cor || '#6366f1' }} />
+                      {p.nome}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button onClick={() => openNew()} className="gap-2">
+              <Plus className="w-4 h-4" />
+              Nova Reunião
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-6 items-start">
@@ -391,6 +425,12 @@ export default function Reunioes() {
                         </Badge>
                       </div>
                       <p className="text-xs text-muted-foreground line-clamp-1">{r.assunto}</p>
+                      {r.projetos && (
+                        <p className="text-[11px] mt-0.5 flex items-center gap-1" style={{ color: r.projetos.cor || '#6366f1' }}>
+                          <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: r.projetos.cor || '#6366f1' }} />
+                          {r.projetos.nome}
+                        </p>
+                      )}
                       <div className="flex flex-wrap gap-3 mt-2">
                         <span className="flex items-center gap-1 text-xs text-muted-foreground">
                           <Calendar className="w-3 h-3" />
@@ -454,6 +494,24 @@ export default function Reunioes() {
                 value={form.titulo}
                 onChange={e => setForm(f => ({ ...f, titulo: e.target.value }))}
               />
+            </div>
+
+            <div className="sm:col-span-2 space-y-1.5">
+              <Label className="flex items-center gap-1.5"><FolderKanban className="w-3.5 h-3.5" />Vincular Projeto</Label>
+              <Select value={form.projeto_id} onValueChange={v => setForm(f => ({ ...f, projeto_id: v === '__none' ? '' : v }))}>
+                <SelectTrigger><SelectValue placeholder="Nenhum projeto (opcional)" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">Nenhum projeto</SelectItem>
+                  {projetos.map(p => (
+                    <SelectItem key={p.id} value={p.id}>
+                      <span className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: p.cor || '#6366f1' }} />
+                        {p.nome}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-1.5">

@@ -1,17 +1,28 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { supabase } from '@/lib/supabase';
 import {
-  Users, FileText, Lightbulb, Eye, Heart, MessageSquare, Sparkles,
-  Share2, Star, BarChart2, Activity, ArrowUpRight, ArrowDownRight,
-  Minus, AlertTriangle, Clock,
+  Users, Lightbulb, MessageSquare,
+  Star, BarChart2, ArrowUpRight, ArrowDownRight,
+  Minus, AlertTriangle, FolderKanban, CalendarDays, TrendingUp,
 } from 'lucide-react';
 import {
-  AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
+  AreaChart, Area, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer,
 } from 'recharts';
 
 const ACCENT = '#e5a700', BLUE = '#3b82f6', GREEN = '#22c55e', RED = '#ef4444', PURPLE = '#a855f7', CYAN = '#06b6d4';
+
+const STATUS_COLS = [
+  { id: 'prospeccao', title: 'Prospecção', color: ACCENT },
+  { id: 'proposta_enviada', title: 'Proposta Enviada', color: BLUE },
+  { id: 'em_negociacao', title: 'Em Negociação', color: PURPLE },
+  { id: 'aprovado', title: 'Aprovado', color: GREEN },
+  { id: 'em_execucao', title: 'Em Execução', color: CYAN },
+  { id: 'concluido', title: 'Concluído', color: '#10b981' },
+  { id: 'perdido', title: 'Perdido', color: RED },
+];
 
 function useCountUp(target: number, duration = 900) {
   const [value, setValue] = useState(0);
@@ -66,14 +77,19 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [ideias, setIdeias] = useState<any[]>([]);
   const [posts, setPosts] = useState<any[]>([]);
   const [metricas, setMetricas] = useState<any[]>([]);
-  const [recomendacoes, setRecomendacoes] = useState<any[]>([]);
+  const [_recomendacoes, setRecomendacoes] = useState<any[]>([]);
   const [clientes, setClientes] = useState<any[]>([]);
   const [interacoes, setInteracoes] = useState<any[]>([]);
   const [projetos, setProjetos] = useState<any[]>([]);
+  const [reunioes, setReunioes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const today = new Date().toISOString().split('T')[0];
+  const next7 = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
 
   useEffect(() => {
     Promise.all([
@@ -82,9 +98,10 @@ export default function Dashboard() {
       supabase.from('metricas').select('*').order('data_post', { ascending: false }),
       supabase.from('recomendacoes').select('*'),
       supabase.from('clientes').select('*'),
-      supabase.from('interacoes').select('*').order('data_interacao', { ascending: false }).limit(20),
-      supabase.from('projetos').select('*').limit(100),
-    ]).then(([i, p, m, r, c, int, proj]) => {
+      supabase.from('interacoes').select('*, clientes(nome, empresa)').order('data_interacao', { ascending: false }).limit(20),
+      supabase.from('projetos').select('*, clientes(nome, empresa)').order('ordem').limit(100),
+      supabase.from('reunioes').select('*').gte('data', today).lte('data', next7).order('data'),
+    ]).then(([i, p, m, r, c, int, proj, reu]) => {
       setIdeias(i.data ?? []);
       setPosts(p.data ?? []);
       setMetricas(m.data ?? []);
@@ -92,17 +109,15 @@ export default function Dashboard() {
       setClientes(c.data ?? []);
       setInteracoes(int.data ?? []);
       setProjetos(proj.data ?? []);
+      setReunioes(reu.data ?? []);
       setLoading(false);
     });
   }, []);
 
-  const totalLikes = metricas.reduce((a, m) => a + (m.likes ?? 0), 0);
-  const totalImpressions = metricas.reduce((a, m) => a + (m.impressoes ?? 0), 0);
-  const totalComments = metricas.reduce((a, m) => a + (m.comentarios ?? 0), 0);
-  const totalShares = metricas.reduce((a, m) => a + (m.compartilhamentos ?? 0), 0);
   const avgScore = metricas.length ? Math.round(metricas.reduce((a, m) => a + (m.score_performance ?? 0), 0) / metricas.length) : 0;
   const openInteracoes = interacoes.filter(i => i.status === 'aberto' || i.status === 'pendente').length;
   const activeClients = clientes.filter(c => (c.status ?? 'ativo') === 'ativo').length;
+  const totalPipeline = projetos.filter(p => !['concluido', 'perdido'].includes(p.status)).reduce((a, p) => a + (p.valor_estimado ?? 0), 0);
 
   const metricasPorMes = (() => {
     const map: Record<string, any> = {};
@@ -117,21 +132,12 @@ export default function Dashboard() {
     return Object.values(map).slice(-6);
   })();
 
-  const ideiaStatusData = [
-    { name: 'Pendente', value: ideias.filter(i => i.status === 'Pendente').length, color: ACCENT },
-    { name: 'Em uso', value: ideias.filter(i => i.status === 'Em uso').length, color: BLUE },
-    { name: 'Usado', value: ideias.filter(i => i.status === 'Usado').length, color: GREEN },
-    { name: 'Rejeitado', value: ideias.filter(i => i.status === 'Rejeitado').length, color: RED },
-  ].filter(d => d.value > 0);
-
-  const projetosByStatus = [
-    { name: 'Prospecção', value: projetos.filter(p => p.status === 'prospeccao').length, color: ACCENT },
-    { name: 'Proposta', value: projetos.filter(p => p.status === 'proposta_enviada').length, color: BLUE },
-    { name: 'Negociação', value: projetos.filter(p => p.status === 'em_negociacao').length, color: PURPLE },
-    { name: 'Aprovado', value: projetos.filter(p => p.status === 'aprovado').length, color: GREEN },
-    { name: 'Execução', value: projetos.filter(p => p.status === 'em_execucao').length, color: CYAN },
-    { name: 'Concluído', value: projetos.filter(p => p.status === 'concluido').length, color: '#10b981' },
-  ].filter(s => s.value > 0);
+  const projetosByStatus = STATUS_COLS.map(col => ({
+    name: col.title,
+    value: projetos.filter(p => p.status === col.id).length,
+    color: col.color,
+    id: col.id,
+  })).filter(s => s.value > 0);
 
   if (loading) {
     return (
@@ -146,20 +152,91 @@ export default function Dashboard() {
   return (
     <Layout>
       <div className="space-y-6 animate-fade-in">
-        <div>
-          <h1 className="text-xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">Visão geral do CRM Torke Assistem</p>
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-foreground">Dashboard</h1>
+            <p className="text-sm text-muted-foreground">Visão geral — todos os projetos</p>
+          </div>
+          {totalPipeline > 0 && (
+            <div className="flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-lg px-3 py-1.5">
+              <TrendingUp className="w-4 h-4 text-primary" />
+              <span className="text-sm font-semibold text-primary">
+                Pipeline: R$ {totalPipeline.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+          )}
         </div>
 
+        {/* KPIs */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
           <KpiCard title="Clientes" raw={clientes.length} icon={Users} color={ACCENT} trend={1} trendLabel={`${activeClients} ativos`} />
-          <KpiCard title="Ideias" raw={ideias.length} icon={Lightbulb} color={BLUE} trend={0} trendLabel={`${ideias.filter(i=>i.status==='Pendente').length} pendentes`} />
-          <KpiCard title="Posts" raw={posts.length} icon={FileText} color={PURPLE} trend={1} trendLabel={`${posts.filter(p=>p.status_aprovacao==='Aprovado').length} aprovados`} />
+          <KpiCard title="Projetos" raw={projetos.length} icon={FolderKanban} color={GREEN} trend={0} trendLabel={`${projetos.filter(p => p.status === 'em_execucao').length} em execução`} />
+          <KpiCard title="Ideias" raw={ideias.length} icon={Lightbulb} color={BLUE} trend={0} trendLabel={`${ideias.filter(i => i.status === 'Pendente').length} pendentes`} />
           <KpiCard title="Interações" raw={interacoes.length} icon={MessageSquare} color={CYAN} trend={openInteracoes > 0 ? -1 : 0} trendLabel={`${openInteracoes} em aberto`} />
-          <KpiCard title="Projetos" raw={projetos.length} icon={BarChart2} color={GREEN} trend={0} trendLabel={`${projetos.filter(p=>p.status==='em_execucao').length} em execução`} />
-          <KpiCard title="Score Médio" raw={avgScore} icon={Star} color={ACCENT} trend={avgScore >= 50 ? 1 : -1} trendLabel={`${metricas.filter(m=>m.top_conteudo).length} top posts`} />
+          <KpiCard title="Reuniões" raw={reunioes.length} icon={CalendarDays} color={PURPLE} trend={0} trendLabel="próximos 7 dias" />
+          <KpiCard title="Score Médio" raw={avgScore} icon={Star} color={ACCENT} trend={avgScore >= 50 ? 1 : -1} trendLabel={`${metricas.filter(m => m.top_conteudo).length} top posts`} />
         </div>
 
+        {/* Projetos em destaque */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-foreground">Projetos</h2>
+            <button onClick={() => navigate('/projetos')} className="text-xs text-primary hover:underline flex items-center gap-1">
+              Ver todos <ArrowUpRight className="w-3 h-3" />
+            </button>
+          </div>
+          {projetos.length === 0 ? (
+            <div className="bg-card border border-dashed border-border rounded-xl p-8 text-center text-muted-foreground text-sm">
+              Nenhum projeto cadastrado
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+              {projetos.slice(0, 10).map(projeto => {
+                const statusCol = STATUS_COLS.find(s => s.id === projeto.status);
+                return (
+                  <div
+                    key={projeto.id}
+                    className="bg-card border border-border rounded-xl overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer group"
+                    onClick={() => navigate(`/projetos/${projeto.id}`)}
+                  >
+                    <div
+                      className="h-20 flex items-center justify-center relative"
+                      style={{ backgroundColor: projeto.foto_url ? undefined : (projeto.cor || '#6366f1') }}
+                    >
+                      {projeto.foto_url ? (
+                        <img src={projeto.foto_url} alt={projeto.nome} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-3xl font-bold text-white/25 select-none">{projeto.nome.charAt(0)}</span>
+                      )}
+                      {statusCol && (
+                        <span
+                          className="absolute top-1.5 right-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full text-white"
+                          style={{ backgroundColor: statusCol.color + 'cc' }}
+                        >
+                          {statusCol.title}
+                        </span>
+                      )}
+                    </div>
+                    <div className="p-2.5">
+                      <p className="text-xs font-semibold text-foreground truncate">{projeto.nome}</p>
+                      <p className="text-[11px] text-muted-foreground truncate">
+                        {projeto.empresa || projeto.clientes?.nome || '—'}
+                      </p>
+                      {projeto.valor_estimado != null && (
+                        <p className="text-[11px] font-bold mt-0.5" style={{ color: projeto.cor || '#6366f1' }}>
+                          R$ {Number(projeto.valor_estimado).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Charts row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="bg-card rounded-lg border border-border p-4 lg:col-span-2">
             <h3 className="text-sm font-semibold text-foreground mb-3">Performance por Mês</h3>
@@ -184,47 +261,19 @@ export default function Dashboard() {
             )}
           </div>
           <div className="bg-card rounded-lg border border-border p-4">
-            <h3 className="text-sm font-semibold text-foreground mb-3">Ideias por Status</h3>
-            {ideiaStatusData.length === 0 ? (
-              <div className="flex items-center justify-center h-48 text-muted-foreground text-sm">Sem ideias</div>
-            ) : (
-              <>
-                <ResponsiveContainer width="100%" height={150}>
-                  <PieChart>
-                    <Pie data={ideiaStatusData} cx="50%" cy="50%" innerRadius={46} outerRadius={68} dataKey="value" strokeWidth={0} paddingAngle={3}>
-                      {ideiaStatusData.map((d, i) => <Cell key={i} fill={d.color} />)}
-                    </Pie>
-                    <Tooltip content={<CustomTooltip />} />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="mt-2 space-y-1">
-                  {ideiaStatusData.map((d, i) => (
-                    <div key={i} className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-2 h-2 rounded-full" style={{ background: d.color }} />
-                        <span className="text-muted-foreground">{d.name}</span>
-                      </div>
-                      <span className="font-semibold text-foreground">{d.value}</span>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div className="bg-card rounded-lg border border-border p-4">
-            <h3 className="text-sm font-semibold text-foreground mb-3">Pipeline de Projetos</h3>
+            <h3 className="text-sm font-semibold text-foreground mb-3">Pipeline por Status</h3>
             {projetosByStatus.length === 0 ? (
-              <div className="flex items-center justify-center h-44 text-muted-foreground text-sm">Nenhum projeto</div>
+              <div className="flex items-center justify-center h-48 text-muted-foreground text-sm">Nenhum projeto</div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-2.5 mt-2">
                 {projetosByStatus.map((s, i) => (
                   <div key={i} className="flex items-center gap-3">
-                    <span className="text-xs text-muted-foreground w-20 shrink-0">{s.name}</span>
-                    <div className="flex-1 h-6 rounded bg-muted overflow-hidden">
-                      <div className="h-full rounded flex items-center justify-end pr-2 transition-all" style={{ width: `${Math.max((s.value / Math.max(...projetosByStatus.map(x => x.value), 1)) * 100, 12)}%`, background: `${s.color}20`, borderRight: `3px solid ${s.color}` }}>
+                    <span className="text-xs text-muted-foreground w-20 shrink-0 truncate">{s.name}</span>
+                    <div className="flex-1 h-5 rounded bg-muted overflow-hidden">
+                      <div
+                        className="h-full rounded flex items-center justify-end pr-2 transition-all"
+                        style={{ width: `${Math.max((s.value / Math.max(...projetosByStatus.map(x => x.value), 1)) * 100, 12)}%`, background: `${s.color}20`, borderRight: `3px solid ${s.color}` }}
+                      >
                         <span className="text-xs font-bold" style={{ color: s.color }}>{s.value}</span>
                       </div>
                     </div>
@@ -233,8 +282,15 @@ export default function Dashboard() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Bottom row: Atividade recente + Próximas reuniões */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="bg-card rounded-lg border border-border p-4">
-            <h3 className="text-sm font-semibold text-foreground mb-3">Atividade Recente</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-foreground">Atividade Recente</h3>
+              <button onClick={() => navigate('/interacoes')} className="text-xs text-primary hover:underline">Ver todas</button>
+            </div>
             {interacoes.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">Sem interações</p>
             ) : (
@@ -245,11 +301,11 @@ export default function Dashboard() {
                     <span className="text-destructive">{openInteracoes} interação{openInteracoes > 1 ? 'ões' : ''} em aberto</span>
                   </div>
                 )}
-                {interacoes.slice(0, 5).map(int => (
+                {interacoes.slice(0, 6).map(int => (
                   <div key={int.id} className="flex items-start gap-2">
                     <div className="w-1.5 h-1.5 rounded-full mt-2 shrink-0" style={{ background: int.status === 'aberto' || int.status === 'pendente' ? ACCENT : GREEN }} />
                     <div className="min-w-0">
-                      <p className="text-xs text-foreground/80 line-clamp-2">{int.mensagem || 'Sem mensagem'}</p>
+                      <p className="text-xs text-foreground/80 line-clamp-1">{int.clientes?.nome || 'Cliente'} — {int.mensagem || 'Sem mensagem'}</p>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
                         {new Date(int.data_interacao).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })} · {int.canal}
                       </p>
@@ -259,40 +315,43 @@ export default function Dashboard() {
               </div>
             )}
           </div>
-        </div>
 
-        {metricas.length > 0 && (
-          <div className="bg-card rounded-lg border border-border overflow-hidden">
-            <div className="px-4 py-3 flex items-center justify-between border-b border-border">
-              <h3 className="text-sm font-semibold text-foreground">Todas as Métricas</h3>
-              <span className="text-xs text-muted-foreground">{metricas.length} registros</span>
+          <div className="bg-card rounded-lg border border-border p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-foreground">Próximas Reuniões (7 dias)</h3>
+              <button onClick={() => navigate('/reunioes')} className="text-xs text-primary hover:underline">Ver todas</button>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left px-4 py-2 text-xs font-medium text-muted-foreground">Post</th>
-                    <th className="text-right px-4 py-2 text-xs font-medium text-muted-foreground">Impressões</th>
-                    <th className="text-right px-4 py-2 text-xs font-medium text-muted-foreground">Likes</th>
-                    <th className="text-right px-4 py-2 text-xs font-medium text-muted-foreground">Score</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {metricas.slice(0, 10).map(m => (
-                    <tr key={m.id} className="border-b border-border last:border-0 hover:bg-muted/50">
-                      <td className="px-4 py-2 text-foreground">{m.assunto ?? m.id_post ?? '—'}</td>
-                      <td className="px-4 py-2 text-right text-muted-foreground">{(m.impressoes ?? 0).toLocaleString('pt-BR')}</td>
-                      <td className="px-4 py-2 text-right text-muted-foreground">{m.likes ?? 0}</td>
-                      <td className="px-4 py-2 text-right font-semibold" style={{ color: (m.score_performance ?? 0) >= 70 ? GREEN : (m.score_performance ?? 0) >= 40 ? ACCENT : RED }}>
-                        {m.score_performance ?? 0}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            {reunioes.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-muted-foreground text-sm gap-2">
+                <CalendarDays className="w-8 h-8 text-muted-foreground/30" />
+                <p>Nenhuma reunião nos próximos 7 dias</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {reunioes.map(r => (
+                  <div
+                    key={r.id}
+                    className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
+                    onClick={() => navigate('/reunioes')}
+                  >
+                    <div className="w-9 h-9 rounded-lg bg-primary/10 flex flex-col items-center justify-center shrink-0">
+                      <span className="text-[9px] font-bold text-primary uppercase">
+                        {new Date(r.data + 'T00:00:00').toLocaleDateString('pt-BR', { month: 'short' })}
+                      </span>
+                      <span className="text-sm font-bold text-primary leading-none">
+                        {new Date(r.data + 'T00:00:00').getDate()}
+                      </span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold text-foreground truncate">{r.titulo}</p>
+                      <p className="text-[11px] text-muted-foreground">{r.horario_inicio}{r.horario_fim ? ` – ${r.horario_fim}` : ''} · {r.assunto}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </Layout>
   );

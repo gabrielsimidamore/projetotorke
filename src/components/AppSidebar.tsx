@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   LayoutDashboard, Lightbulb, FileText, BarChart3, Sparkles,
   LogOut, Sun, Moon, Users, MessageSquare, FolderKanban, ShoppingCart,
-  CalendarDays, Bell, ChevronDown, ChevronRight, Plus,
+  CalendarDays, Bell, ChevronDown, ChevronRight, Plus, Network,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
@@ -39,6 +39,7 @@ const navGroups = [
     items: [
       { title: 'Ideias', url: '/ideias', icon: Lightbulb },
       { title: 'Posts', url: '/posts', icon: FileText },
+      { title: 'Insights', url: '/insights', icon: Network },
     ],
   },
   {

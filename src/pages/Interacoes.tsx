@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Mail, Phone, Linkedin, Loader2, Search, Instagram, PhoneCall, UserCheck, MessageSquare, Building2, Paperclip, X, ExternalLink } from 'lucide-react';
+import { Plus, Mail, Phone, Linkedin, Loader2, Search, Instagram, PhoneCall, UserCheck, MessageSquare, Building2, Paperclip, X, ExternalLink, CheckCircle2, FolderKanban } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const CANAL_CFG: Record<string, { icon: any; color: string; label: string }> = {
@@ -28,6 +28,8 @@ const STATUS_CFG: Record<string, { label: string; class: string }> = {
   aguardando: { label: 'Aguardando', class: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
   resolvido:  { label: 'Resolvido',  class: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
   respondido: { label: 'Respondido', class: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
+  aprovado:   { label: 'Aprovado',   class: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' },
+  concluido:  { label: 'Concluído',  class: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' },
 };
 
 function relTime(date: string) {
@@ -42,8 +44,14 @@ function relTime(date: string) {
   return new Date(date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
 }
 
+function todayStr() {
+  const t = new Date();
+  return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+}
+
 const emptyForm = {
   cliente_id: '',
+  projeto_id: '',
   canal: '',
   data: '',
   data_prevista: '',
@@ -57,6 +65,7 @@ export default function Interacoes() {
   const { toast } = useToast();
   const [interacoes, setInteracoes] = useState<any[]>([]);
   const [clientes, setClientes] = useState<any[]>([]);
+  const [projetos, setProjetos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -70,22 +79,53 @@ export default function Interacoes() {
   const [clienteDropdown, setClienteDropdown] = useState(false);
   const [arquivos, setArquivos] = useState<File[]>([]);
   const [uploadando, setUploadando] = useState(false);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  const today = todayStr();
+
   const fetchData = async () => {
-    const [i, c] = await Promise.all([
-      supabase.from('interacoes').select('*, clientes(id, nome, empresa, telefone, email, segmento)').order('data_interacao', { ascending: false }),
+    const [i, c, p] = await Promise.all([
+      supabase.from('interacoes').select('*, clientes(id, nome, empresa, telefone, email, segmento), projetos(id, nome, cor)').order('data_interacao', { ascending: false }),
       supabase.from('clientes').select('*').order('nome'),
+      supabase.from('projetos').select('id, nome, cor').order('nome'),
     ]);
     setInteracoes(i.data ?? []);
     setClientes(c.data ?? []);
+    setProjetos(p.data ?? []);
     setLoading(false);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  // Auto-complete: mark as concluido if start date AND end date are today
+  const autoComplete = async (data: any[]) => {
+    const toComplete = data.filter(i => {
+      if (i.status === 'concluido' || i.status === 'aprovado' || i.status === 'resolvido') return false;
+      const startDate = i.data_interacao ? i.data_interacao.split('T')[0] : null;
+      const endDate = i.data_prevista ? i.data_prevista.split('T')[0] : null;
+      return startDate === today && endDate === today;
+    });
+    if (toComplete.length === 0) return;
+    const ids = toComplete.map((i: any) => i.id);
+    await supabase.from('interacoes').update({ status: 'concluido' }).in('id', ids);
+    if (toComplete.length > 0) {
+      toast({ title: `${toComplete.length} interaç${toComplete.length > 1 ? 'ões concluídas' : 'ão concluída'} automaticamente` });
+    }
+  };
 
-  // Fechar dropdown ao clicar fora
+  useEffect(() => {
+    fetchData().then(() => {
+      // auto-complete happens after data is fetched
+    });
+  }, []);
+
+  // Run auto-complete whenever interacoes loads
+  useEffect(() => {
+    if (interacoes.length > 0 && !loading) {
+      autoComplete(interacoes);
+    }
+  }, [loading]);
+
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -149,6 +189,7 @@ export default function Interacoes() {
       ...(form.data_prevista && { data_prevista: new Date(form.data_prevista).toISOString() }),
       ...(form.regiao && { regiao: form.regiao }),
       ...(form.proxima_acao && { proxima_acao: form.proxima_acao }),
+      ...(form.projeto_id && { projeto_id: form.projeto_id }),
     };
 
     const { data: novaInt, error } = await supabase.from('interacoes').insert(payload).select().single();
@@ -181,6 +222,32 @@ export default function Interacoes() {
       const { data } = await supabase.from('interacoes').select('*').eq('cliente_id', int.clientes.id).neq('id', int.id).order('data_interacao', { ascending: false }).limit(10);
       setClienteHistory(data ?? []);
     } else setClienteHistory([]);
+  };
+
+  const handleApprove = async (id: string) => {
+    setApprovingId(id);
+    const { error } = await supabase.from('interacoes').update({ status: 'aprovado' }).eq('id', id);
+    setApprovingId(null);
+    if (error) {
+      toast({ title: 'Erro ao aprovar', variant: 'destructive' });
+      return;
+    }
+    toast({ title: 'Interação aprovada!' });
+    setInteracoes(prev => prev.map(i => i.id === id ? { ...i, status: 'aprovado' } : i));
+    setSelected((prev: any) => prev?.id === id ? { ...prev, status: 'aprovado' } : prev);
+  };
+
+  const handleConclude = async (id: string) => {
+    setApprovingId(id);
+    const { error } = await supabase.from('interacoes').update({ status: 'concluido' }).eq('id', id);
+    setApprovingId(null);
+    if (error) {
+      toast({ title: 'Erro ao concluir', variant: 'destructive' });
+      return;
+    }
+    toast({ title: 'Interação concluída!' });
+    setInteracoes(prev => prev.map(i => i.id === id ? { ...i, status: 'concluido' } : i));
+    setSelected((prev: any) => prev?.id === id ? { ...prev, status: 'concluido' } : prev);
   };
 
   const filtered = useMemo(() => interacoes.filter(i => {
@@ -237,6 +304,25 @@ export default function Interacoes() {
                       ))}
                     </div>
                   )}
+                </div>
+
+                {/* Vincular Projeto */}
+                <div className="space-y-1.5">
+                  <Label className="flex items-center gap-1.5"><FolderKanban className="w-3.5 h-3.5" />Vincular Projeto</Label>
+                  <Select value={form.projeto_id} onValueChange={v => setForm({ ...form, projeto_id: v === '__none' ? '' : v })}>
+                    <SelectTrigger><SelectValue placeholder="Nenhum projeto (opcional)" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none">Nenhum projeto</SelectItem>
+                      {projetos.map(p => (
+                        <SelectItem key={p.id} value={p.id}>
+                          <span className="flex items-center gap-2">
+                            <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: p.cor || '#6366f1' }} />
+                            {p.nome}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Data e Tipo */}
@@ -350,12 +436,14 @@ export default function Interacoes() {
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos status</SelectItem>
               <SelectItem value="aberto">Aberto</SelectItem>
               <SelectItem value="aguardando">Aguardando</SelectItem>
               <SelectItem value="resolvido">Resolvido</SelectItem>
+              <SelectItem value="aprovado">Aprovado</SelectItem>
+              <SelectItem value="concluido">Concluído</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -391,6 +479,12 @@ export default function Interacoes() {
                       <div className="mt-2 flex items-center gap-2 flex-wrap">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${status.class}`}>{status.label}</span>
                         {int.regiao && <span className="text-[11px] text-muted-foreground">{int.regiao}</span>}
+                        {int.projetos && (
+                          <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: int.projetos.cor || '#6366f1' }} />
+                            {int.projetos.nome}
+                          </span>
+                        )}
                         {int.anexos?.length > 0 && <Paperclip className="w-3 h-3 text-muted-foreground" />}
                       </div>
                     </div>
@@ -413,6 +507,7 @@ export default function Interacoes() {
                 const canal = CANAL_CFG[selected.canal] ?? CANAL_CFG.outro;
                 const status = STATUS_CFG[selected.status] ?? STATUS_CFG.aberto;
                 const CIcon = canal.icon;
+                const isTerminated = selected.status === 'aprovado' || selected.status === 'concluido' || selected.status === 'resolvido';
                 return (
                   <div className="space-y-4">
                     <div className="bg-card rounded-lg border border-border p-4">
@@ -434,18 +529,51 @@ export default function Interacoes() {
                             </p>
                             {selected.regiao && <p className="text-xs text-muted-foreground mt-0.5">📍 {selected.regiao}</p>}
                             {selected.data_prevista && <p className="text-xs text-muted-foreground mt-0.5">📅 Previsto: {new Date(selected.data_prevista).toLocaleDateString('pt-BR')}</p>}
+                            {selected.projetos && (
+                              <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: selected.projetos.cor || '#6366f1' }} />
+                                Projeto: {selected.projetos.nome}
+                              </p>
+                            )}
                           </div>
                         </div>
-                        <div className="flex gap-1.5 shrink-0">
-                          {selected.clientes?.telefone && (
-                            <a href={`https://wa.me/55${selected.clientes.telefone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer">
-                              <Button variant="outline" size="icon" className="h-8 w-8"><Phone className="w-4 h-4 text-green-600" /></Button>
-                            </a>
-                          )}
-                          {selected.clientes?.email && (
-                            <a href={`mailto:${selected.clientes.email}`}>
-                              <Button variant="outline" size="icon" className="h-8 w-8"><Mail className="w-4 h-4 text-blue-600" /></Button>
-                            </a>
+                        <div className="flex gap-1.5 shrink-0 flex-col items-end">
+                          <div className="flex gap-1.5">
+                            {selected.clientes?.telefone && (
+                              <a href={`https://wa.me/55${selected.clientes.telefone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer">
+                                <Button variant="outline" size="icon" className="h-8 w-8"><Phone className="w-4 h-4 text-green-600" /></Button>
+                              </a>
+                            )}
+                            {selected.clientes?.email && (
+                              <a href={`mailto:${selected.clientes.email}`}>
+                                <Button variant="outline" size="icon" className="h-8 w-8"><Mail className="w-4 h-4 text-blue-600" /></Button>
+                              </a>
+                            )}
+                          </div>
+                          {/* Action buttons */}
+                          {!isTerminated && (
+                            <div className="flex gap-1.5 mt-1">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs gap-1 border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-400 dark:hover:bg-emerald-900/20"
+                                onClick={() => handleApprove(selected.id)}
+                                disabled={approvingId === selected.id}
+                              >
+                                {approvingId === selected.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />}
+                                Aprovar
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs gap-1"
+                                onClick={() => handleConclude(selected.id)}
+                                disabled={approvingId === selected.id}
+                              >
+                                {approvingId === selected.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />}
+                                Concluir
+                              </Button>
+                            </div>
                           )}
                         </div>
                       </div>
