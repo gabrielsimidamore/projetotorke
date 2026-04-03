@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, CalendarDays, CheckCircle2, CircleDollarSign,
   Loader2, Plus, Save, Target, Trash2, Users, MessageSquare,
-  Building2, Phone, Mail, CheckCheck, Calendar,
+  Building2, Phone, Mail, Calendar, Pencil,
 } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { useProject } from '@/contexts/ProjectContext';
@@ -108,6 +108,58 @@ const ProjetoDetalhe = () => {
     titulo: '', descricao: '', responsavel: '',
     status: 'pendente', prioridade: 'media', data_prevista: '',
   });
+
+  // Detalhe/edição de tarefa
+  const [selectedTarefa, setSelectedTarefa] = useState<Tarefa | null>(null);
+  const [editTaskForm, setEditTaskForm] = useState({
+    titulo: '', descricao: '', responsavel: '', status: 'pendente', prioridade: 'media', data_prevista: '',
+  });
+  const [savingEditTask, setSavingEditTask] = useState(false);
+  const [deletingTask, setDeletingTask] = useState(false);
+
+  const openTarefaDetail = (t: Tarefa) => {
+    setSelectedTarefa(t);
+    setEditTaskForm({
+      titulo: t.titulo, descricao: t.descricao ?? '',
+      responsavel: t.responsavel ?? '', status: t.status ?? 'pendente',
+      prioridade: t.prioridade ?? 'media', data_prevista: t.data_prevista ?? '',
+    });
+  };
+
+  const handleUpdateTarefa = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedTarefa) return;
+    setSavingEditTask(true);
+    const { error } = await supabase.from('tarefas').update({
+      titulo: editTaskForm.titulo, descricao: editTaskForm.descricao || null,
+      responsavel: editTaskForm.responsavel || null, status: editTaskForm.status,
+      prioridade: editTaskForm.prioridade, data_prevista: editTaskForm.data_prevista || null,
+    }).eq('id', selectedTarefa.id);
+    setSavingEditTask(false);
+    if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+    setTarefas(prev => prev.map(t => t.id === selectedTarefa.id ? {
+      ...t,
+      titulo: editTaskForm.titulo,
+      descricao: editTaskForm.descricao || null,
+      responsavel: editTaskForm.responsavel || null,
+      status: editTaskForm.status as Tarefa['status'],
+      prioridade: editTaskForm.prioridade as Tarefa['prioridade'],
+      data_prevista: editTaskForm.data_prevista || null,
+    } : t));
+    toast({ title: 'Tarefa atualizada!' });
+    setSelectedTarefa(null);
+  };
+
+  const handleDeleteTarefaFromDetail = async () => {
+    if (!selectedTarefa) return;
+    setDeletingTask(true);
+    const { error } = await supabase.from('tarefas').delete().eq('id', selectedTarefa.id);
+    setDeletingTask(false);
+    if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+    setTarefas(prev => prev.filter(t => t.id !== selectedTarefa.id));
+    toast({ title: 'Tarefa removida' });
+    setSelectedTarefa(null);
+  };
 
   // Nova reunião
   const [reuniaoDialog, setReuniaoDialog] = useState(false);
@@ -414,20 +466,20 @@ const ProjetoDetalhe = () => {
                   </div>
                 ) : (
                   tarefas.map(tarefa => (
-                    <div key={tarefa.id} className="border border-border rounded-xl p-4 space-y-2 group" style={{ borderLeftColor: accentColor, borderLeftWidth: 3 }}>
+                    <div
+                      key={tarefa.id}
+                      onClick={() => openTarefaDetail(tarefa)}
+                      className="border border-border rounded-xl p-4 space-y-2 cursor-pointer hover:bg-accent/40 transition-colors"
+                      style={{ borderLeftColor: accentColor, borderLeftWidth: 3 }}
+                    >
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-foreground truncate">{tarefa.titulo}</p>
-                          {tarefa.descricao && <p className="text-sm text-muted-foreground whitespace-pre-wrap mt-0.5">{tarefa.descricao}</p>}
+                          {tarefa.descricao && <p className="text-sm text-muted-foreground line-clamp-2 mt-0.5">{tarefa.descricao}</p>}
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           <Badge className={getBadgeStyle(tarefa.status)}>{TAREFA_LABELS[tarefa.status] ?? tarefa.status}</Badge>
                           <Badge className={getBadgeStyle(tarefa.prioridade)} variant="outline">{tarefa.prioridade}</Badge>
-                          <button
-                            onClick={() => handleDeleteTarefa(tarefa.id)}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive">
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
                         </div>
                       </div>
                       <div className="text-xs text-muted-foreground flex flex-wrap gap-3">
@@ -440,6 +492,64 @@ const ProjetoDetalhe = () => {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* ─── TASK DETAIL DIALOG ─── */}
+          <Dialog open={!!selectedTarefa} onOpenChange={open => { if (!open) setSelectedTarefa(null); }}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Pencil className="w-4 h-4" style={{ color: accentColor }} />
+                  Detalhe da Tarefa
+                </DialogTitle>
+              </DialogHeader>
+              {selectedTarefa && (
+                <form onSubmit={handleUpdateTarefa} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Título *</Label>
+                    <Input value={editTaskForm.titulo} onChange={e => setEditTaskForm({ ...editTaskForm, titulo: e.target.value })} required />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Descrição</Label>
+                    <Textarea value={editTaskForm.descricao} onChange={e => setEditTaskForm({ ...editTaskForm, descricao: e.target.value })} rows={3} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Status</Label>
+                      <Select value={editTaskForm.status} onValueChange={v => setEditTaskForm({ ...editTaskForm, status: v })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>{TAREFA_STATUS.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Prioridade</Label>
+                      <Select value={editTaskForm.prioridade} onValueChange={v => setEditTaskForm({ ...editTaskForm, prioridade: v })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>{TAREFA_PRIORIDADE.map(p => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Responsável</Label>
+                      <Input value={editTaskForm.responsavel} onChange={e => setEditTaskForm({ ...editTaskForm, responsavel: e.target.value })} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Data prevista</Label>
+                      <Input type="date" value={editTaskForm.data_prevista} onChange={e => setEditTaskForm({ ...editTaskForm, data_prevista: e.target.value })} />
+                    </div>
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <Button type="submit" className="flex-1" disabled={savingEditTask} style={{ backgroundColor: accentColor, borderColor: accentColor }}>
+                      {savingEditTask && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Salvar
+                    </Button>
+                    <Button type="button" variant="destructive" onClick={handleDeleteTarefaFromDetail} disabled={deletingTask} className="gap-1.5">
+                      {deletingTask ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                </form>
+              )}
+            </DialogContent>
+          </Dialog>
 
           {/* ─── REUNIÕES ─── */}
           <TabsContent value="reunioes">
