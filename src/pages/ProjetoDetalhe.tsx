@@ -244,7 +244,7 @@ const ProjetoDetalhe = () => {
     if (!id) { setLoading(false); return; }
     setLoading(true);
     const projetoQuery = await supabase
-      .from('projetos').select('*, clientes(id, nome, empresa, telefone, email, segmento, cargo, cidade, estado)').eq('id', id).maybeSingle();
+      .from('projetos').select('*').eq('id', id).maybeSingle();
     if (projetoQuery.error) {
       toast({ title: 'Erro ao carregar projeto', description: projetoQuery.error.message, variant: 'destructive' });
       setLoading(false); return;
@@ -405,7 +405,7 @@ const ProjetoDetalhe = () => {
                 <div>
                   <h1 className="text-2xl font-bold text-foreground">{projeto.nome}</h1>
                   <p className="text-sm text-muted-foreground">
-                    {projeto.empresa || projeto.clientes?.empresa || projeto.clientes?.nome || 'Sem empresa vinculada'}
+                    {projeto.empresa || clientes[0]?.empresa || clientes[0]?.nome || 'Sem empresa vinculada'}
                   </p>
                 </div>
               </div>

@@ -84,7 +84,7 @@ export type Projeto = {
   motivo_perda: string | null; ordem: number; foto_url: string | null;
   titulo: string | null; empresa: string | null; cor: string | null;
   created_at: string; updated_at: string;
-  clientes?: { nome: string; empresa: string };
+  observacoes?: string | null;
 };
 
 export type Tarefa = {
