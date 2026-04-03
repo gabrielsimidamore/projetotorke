@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, CalendarDays, CheckCircle2, CircleDollarSign,
   Loader2, Plus, Save, Target, Trash2, Users, MessageSquare,
-  Building2, Phone, Mail, Calendar, Pencil,
+  Building2, Phone, Mail, Calendar, Pencil, Palette,
 } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { useProject } from '@/contexts/ProjectContext';
@@ -176,6 +176,68 @@ const ProjetoDetalhe = () => {
   const [savingNotas, setSavingNotas] = useState(false);
   const [notasEdited, setNotasEdited] = useState(false);
 
+  // Novo cliente
+  const [clienteDialog, setClienteDialog] = useState(false);
+  const [savingCliente, setSavingCliente] = useState(false);
+  const [clienteForm, setClienteForm] = useState({
+    nome: '', empresa: '', telefone: '', email: '',
+    segmento: '', cargo: '', cidade: '', estado: '', cnpj: '', observacoes: '',
+  });
+  const [deletingClienteId, setDeletingClienteId] = useState<string | null>(null);
+
+  const handleAddCliente = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!id) return;
+    setSavingCliente(true);
+    const { error } = await supabase.from('clientes').insert({
+      ...clienteForm, projeto_id: id,
+      empresa: clienteForm.empresa || null, telefone: clienteForm.telefone || null,
+      email: clienteForm.email || null, segmento: clienteForm.segmento || null,
+      cargo: clienteForm.cargo || null, cidade: clienteForm.cidade || null,
+      estado: clienteForm.estado || null, cnpj: clienteForm.cnpj || null,
+      observacoes: clienteForm.observacoes || null,
+    });
+    setSavingCliente(false);
+    if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+    toast({ title: 'Cliente adicionado!' });
+    setClienteForm({ nome: '', empresa: '', telefone: '', email: '', segmento: '', cargo: '', cidade: '', estado: '', cnpj: '', observacoes: '' });
+    setClienteDialog(false);
+    void loadData();
+  };
+
+  const handleDeleteCliente = async (clienteId: string) => {
+    setDeletingClienteId(clienteId);
+    const { error } = await supabase.from('clientes').delete().eq('id', clienteId);
+    setDeletingClienteId(null);
+    if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+    setClientes(prev => prev.filter(c => c.id !== clienteId));
+    toast({ title: 'Cliente removido' });
+  };
+
+  // Personalização de cor
+  const [customizarDialog, setCustomizarDialog] = useState(false);
+  const [customCor, setCustomCor] = useState('#6366f1');
+  const [savingCor, setSavingCor] = useState(false);
+
+  const COR_PRESETS = [
+    '#6366f1','#8b5cf6','#ec4899','#ef4444','#f97316',
+    '#eab308','#22c55e','#14b8a6','#3b82f6','#06b6d4',
+    '#84cc16','#a855f7','#f43f5e','#10b981','#0ea5e9',
+    '#1d4ed8','#15803d','#b45309','#9f1239','#1e1b4b',
+  ];
+
+  const handleSaveCor = async () => {
+    if (!id) return;
+    setSavingCor(true);
+    const { error } = await supabase.from('projetos').update({ cor: customCor, updated_at: new Date().toISOString() }).eq('id', id);
+    setSavingCor(false);
+    if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+    setProjeto(prev => prev ? { ...prev, cor: customCor } : prev);
+    setProject({ color: customCor, name: projeto?.nome ?? '' });
+    toast({ title: 'Cor atualizada!' });
+    setCustomizarDialog(false);
+  };
+
   const accentColor = projeto?.cor || '#6366f1';
 
   const loadData = async () => {
@@ -206,13 +268,9 @@ const ProjetoDetalhe = () => {
     setInteracoes(int.data ?? []);
     setReunioes(reu.data ?? []);
 
-    // If project has a client, load client info
-    if (p?.cliente_id) {
-      const { data: clienteData } = await supabase.from('clientes').select('*').eq('id', p.cliente_id).single();
-      setClientes(clienteData ? [clienteData] : []);
-    } else {
-      setClientes([]);
-    }
+    // Load all clients of this project
+    const { data: clientesData } = await supabase.from('clientes').select('*').eq('projeto_id', id).order('nome');
+    setClientes(clientesData ?? []);
 
     setLoading(false);
   };
@@ -220,7 +278,10 @@ const ProjetoDetalhe = () => {
   useEffect(() => { void loadData(); }, [id]);
 
   useEffect(() => {
-    if (projeto) setProject({ color: projeto.cor || '#6366f1', name: projeto.nome });
+    if (projeto) {
+      setProject({ color: projeto.cor || '#6366f1', name: projeto.nome });
+      setCustomCor(projeto.cor || '#6366f1');
+    }
     return () => setProject(null);
   }, [projeto?.id, projeto?.cor, projeto?.nome]);
 
@@ -349,14 +410,84 @@ const ProjetoDetalhe = () => {
                 </div>
               </div>
             </div>
-            <Badge
-              className="self-start mt-1"
-              style={{ backgroundColor: `${accentColor}20`, color: accentColor, borderColor: `${accentColor}40` }}
-            >
-              {STATUS_LABELS[projeto.status] ?? projeto.status}
-            </Badge>
+            <div className="flex items-center gap-2 self-start mt-1">
+              <Badge
+                style={{ backgroundColor: `${accentColor}20`, color: accentColor, borderColor: `${accentColor}40` }}
+              >
+                {STATUS_LABELS[projeto.status] ?? projeto.status}
+              </Badge>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setCustomizarDialog(true)}
+                className="h-7 gap-1.5 text-xs px-2"
+                style={{ borderColor: `${accentColor}60`, color: accentColor }}
+              >
+                <Palette className="w-3.5 h-3.5" />
+                Personalizar
+              </Button>
+            </div>
           </div>
         </div>
+
+        {/* Customization dialog */}
+        <Dialog open={customizarDialog} onOpenChange={setCustomizarDialog}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Palette className="w-4 h-4" style={{ color: customCor }} />
+                Personalizar Projeto
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-5">
+              {/* Preview strip */}
+              <div
+                className="h-8 rounded-lg w-full transition-colors duration-200"
+                style={{ background: `linear-gradient(90deg, ${customCor}, ${customCor}88)` }}
+              />
+              {/* Color presets */}
+              <div>
+                <p className="text-xs text-muted-foreground mb-2.5 font-medium">Cores predefinidas</p>
+                <div className="grid grid-cols-10 gap-1.5">
+                  {COR_PRESETS.map(cor => (
+                    <button
+                      key={cor}
+                      onClick={() => setCustomCor(cor)}
+                      className="w-7 h-7 rounded-full border-2 transition-transform hover:scale-110"
+                      style={{
+                        backgroundColor: cor,
+                        borderColor: customCor === cor ? '#fff' : 'transparent',
+                        boxShadow: customCor === cor ? `0 0 0 2px ${cor}` : 'none',
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+              {/* Custom color input */}
+              <div className="space-y-1.5">
+                <p className="text-xs text-muted-foreground font-medium">Cor personalizada</p>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={customCor}
+                    onChange={e => setCustomCor(e.target.value)}
+                    className="w-10 h-10 rounded-lg cursor-pointer border border-border bg-transparent p-0.5"
+                  />
+                  <Input
+                    value={customCor}
+                    onChange={e => setCustomCor(e.target.value)}
+                    placeholder="#6366f1"
+                    className="font-mono text-sm"
+                  />
+                </div>
+              </div>
+              <Button onClick={handleSaveCor} disabled={savingCor} className="w-full" style={{ backgroundColor: customCor, borderColor: customCor }}>
+                {savingCor && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Aplicar cor
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Summary cards */}
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
@@ -702,62 +833,136 @@ const ProjetoDetalhe = () => {
           {/* ─── CLIENTES ─── */}
           <TabsContent value="clientes">
             <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Users className="w-5 h-5" style={{ color: accentColor }} />
-                  Cliente Vinculado
-                </CardTitle>
-                <CardDescription>Cliente associado a este projeto.</CardDescription>
+              <CardHeader className="flex flex-row items-center justify-between pb-3">
+                <div>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Users className="w-5 h-5" style={{ color: accentColor }} />
+                    Clientes do Projeto
+                  </CardTitle>
+                  <CardDescription>{clientes.length} cliente{clientes.length !== 1 ? 's' : ''} cadastrado{clientes.length !== 1 ? 's' : ''}.</CardDescription>
+                </div>
+                <Dialog open={clienteDialog} onOpenChange={setClienteDialog}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" className="gap-1.5 shrink-0" style={{ backgroundColor: accentColor, borderColor: accentColor }}>
+                      <Plus className="w-3.5 h-3.5" />Novo Cliente
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+                    <DialogHeader><DialogTitle>Novo Cliente</DialogTitle></DialogHeader>
+                    <form onSubmit={handleAddCliente} className="space-y-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Nome *</Label>
+                        <Input value={clienteForm.nome} onChange={e => setClienteForm({ ...clienteForm, nome: e.target.value })} required />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Empresa</Label>
+                          <Input value={clienteForm.empresa} onChange={e => setClienteForm({ ...clienteForm, empresa: e.target.value })} />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Cargo</Label>
+                          <Input value={clienteForm.cargo} onChange={e => setClienteForm({ ...clienteForm, cargo: e.target.value })} />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Telefone / WhatsApp</Label>
+                          <Input value={clienteForm.telefone} onChange={e => setClienteForm({ ...clienteForm, telefone: e.target.value })} />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">E-mail</Label>
+                          <Input type="email" value={clienteForm.email} onChange={e => setClienteForm({ ...clienteForm, email: e.target.value })} />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Segmento</Label>
+                          <Input value={clienteForm.segmento} onChange={e => setClienteForm({ ...clienteForm, segmento: e.target.value })} />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">CNPJ</Label>
+                          <Input value={clienteForm.cnpj} onChange={e => setClienteForm({ ...clienteForm, cnpj: e.target.value })} />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Cidade</Label>
+                          <Input value={clienteForm.cidade} onChange={e => setClienteForm({ ...clienteForm, cidade: e.target.value })} />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Estado</Label>
+                          <Input value={clienteForm.estado} onChange={e => setClienteForm({ ...clienteForm, estado: e.target.value })} placeholder="SP" maxLength={2} />
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Observações</Label>
+                        <Textarea value={clienteForm.observacoes} onChange={e => setClienteForm({ ...clienteForm, observacoes: e.target.value })} rows={2} />
+                      </div>
+                      <Button type="submit" className="w-full" disabled={savingCliente} style={{ backgroundColor: accentColor, borderColor: accentColor }}>
+                        {savingCliente && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Adicionar Cliente
+                      </Button>
+                    </form>
+                  </DialogContent>
+                </Dialog>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-3">
                 {clientes.length === 0 ? (
-                  <div className="text-center py-8 space-y-2">
-                    <p className="text-sm text-muted-foreground">Nenhum cliente vinculado.</p>
-                    <Button size="sm" variant="outline" onClick={() => navigate('/clientes')} className="gap-1.5">
-                      <Users className="w-3.5 h-3.5" />Gerenciar clientes
+                  <div className="text-center py-10 space-y-3">
+                    <p className="text-sm text-muted-foreground">Nenhum cliente neste projeto ainda.</p>
+                    <Button size="sm" variant="outline" onClick={() => setClienteDialog(true)} className="gap-1.5">
+                      <Plus className="w-3.5 h-3.5" />Adicionar primeiro cliente
                     </Button>
                   </div>
                 ) : (
                   clientes.map(cliente => (
-                    <div key={cliente.id} className="border border-border rounded-xl p-5 space-y-4" style={{ borderColor: `${accentColor}40` }}>
-                      <div className="flex items-start gap-4">
-                        <div
-                          className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-xl shrink-0"
-                          style={{ backgroundColor: accentColor }}
+                    <div key={cliente.id} className="border border-border rounded-xl p-4 group" style={{ borderLeftColor: accentColor, borderLeftWidth: 3 }}>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-3 flex-1 min-w-0">
+                          <div
+                            className="w-9 h-9 rounded-lg flex items-center justify-center text-white font-bold shrink-0"
+                            style={{ backgroundColor: accentColor }}
+                          >
+                            {cliente.nome?.charAt(0) || '?'}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-foreground truncate">{cliente.nome}</p>
+                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Building2 className="w-3 h-3 shrink-0" />
+                              {cliente.empresa || '—'}
+                              {cliente.cargo && <span>· {cliente.cargo}</span>}
+                            </p>
+                            <div className="flex flex-wrap gap-3 mt-1.5">
+                              {cliente.telefone && (
+                                <a href={`https://wa.me/55${cliente.telefone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
+                                  className="flex items-center gap-1 text-xs text-green-600 hover:underline">
+                                  <Phone className="w-3 h-3" />{cliente.telefone}
+                                </a>
+                              )}
+                              {cliente.email && (
+                                <a href={`mailto:${cliente.email}`}
+                                  className="flex items-center gap-1 text-xs text-blue-600 hover:underline">
+                                  <Mail className="w-3 h-3" />{cliente.email}
+                                </a>
+                              )}
+                              {(cliente.cidade || cliente.segmento) && (
+                                <span className="text-xs text-muted-foreground">
+                                  {cliente.cidade && `📍 ${cliente.cidade}${cliente.estado ? `/${cliente.estado}` : ''}`}
+                                  {cliente.segmento && ` · 🏷️ ${cliente.segmento}`}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteCliente(cliente.id)}
+                          disabled={deletingClienteId === cliente.id}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive shrink-0 mt-1"
                         >
-                          {cliente.nome?.charAt(0) || '?'}
-                        </div>
-                        <div>
-                          <p className="font-semibold text-lg text-foreground">{cliente.nome}</p>
-                          <p className="text-sm text-muted-foreground flex items-center gap-1">
-                            <Building2 className="w-3.5 h-3.5" />
-                            {cliente.empresa || '—'}
-                          </p>
-                          {cliente.cargo && <p className="text-xs text-muted-foreground mt-0.5">{cliente.cargo}</p>}
-                        </div>
+                          {deletingClienteId === cliente.id
+                            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            : <Trash2 className="w-3.5 h-3.5" />}
+                        </button>
                       </div>
-                      <div className="grid grid-cols-2 gap-3 text-sm">
-                        {cliente.telefone && (
-                          <a href={`https://wa.me/55${cliente.telefone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
-                            className="flex items-center gap-2 p-2.5 rounded-lg bg-muted hover:bg-muted/80 transition-colors">
-                            <Phone className="w-4 h-4 text-green-600 shrink-0" />
-                            <span className="text-xs truncate">{cliente.telefone}</span>
-                          </a>
-                        )}
-                        {cliente.email && (
-                          <a href={`mailto:${cliente.email}`}
-                            className="flex items-center gap-2 p-2.5 rounded-lg bg-muted hover:bg-muted/80 transition-colors">
-                            <Mail className="w-4 h-4 text-blue-600 shrink-0" />
-                            <span className="text-xs truncate">{cliente.email}</span>
-                          </a>
-                        )}
-                      </div>
-                      {(cliente.cidade || cliente.estado || cliente.segmento) && (
-                        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                          {cliente.cidade && <span>📍 {cliente.cidade}{cliente.estado ? `, ${cliente.estado}` : ''}</span>}
-                          {cliente.segmento && <span>🏷️ {cliente.segmento}</span>}
-                        </div>
-                      )}
                     </div>
                   ))
                 )}

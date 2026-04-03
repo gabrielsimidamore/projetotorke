@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   LayoutDashboard, Lightbulb, FileText, BarChart3, Sparkles,
-  LogOut, Sun, Moon, Users, MessageSquare, FolderKanban, ShoppingCart,
+  LogOut, Sun, Moon, MessageSquare, FolderKanban, ShoppingCart,
   CalendarDays, Bell, ChevronDown, ChevronRight, Plus, Network,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
@@ -29,7 +29,6 @@ const navGroups = [
   {
     label: 'Gestão',
     items: [
-      { title: 'Clientes', url: '/clientes', icon: Users },
       { title: 'Vendas', url: '/vendas', icon: ShoppingCart },
       { title: 'Interações', url: '/interacoes', icon: MessageSquare },
       { title: 'Reuniões', url: '/reunioes', icon: CalendarDays },
@@ -133,26 +132,6 @@ export function AppSidebar() {
           )}
         </SidebarGroup>
 
-        {/* Nav groups */}
-        {navGroups.map(group => (
-          <SidebarGroup key={group.label} className="py-0 mb-1">
-            {!collapsed && (
-              <SidebarGroupLabel className="px-3 py-1.5 mb-0 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                {group.label}
-              </SidebarGroupLabel>
-            )}
-            <SidebarGroupContent>
-              <SidebarMenu className="gap-0.5">
-                {group.items.map(item => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild><NavItem item={item} /></SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
-
         {/* Projetos expansível */}
         <SidebarGroup className="py-0 mb-1">
           {!collapsed ? (
@@ -255,6 +234,26 @@ export function AppSidebar() {
             </SidebarGroupContent>
           )}
         </SidebarGroup>
+
+        {/* Nav groups */}
+        {navGroups.map(group => (
+          <SidebarGroup key={group.label} className="py-0 mb-1">
+            {!collapsed && (
+              <SidebarGroupLabel className="px-3 py-1.5 mb-0 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                {group.label}
+              </SidebarGroupLabel>
+            )}
+            <SidebarGroupContent>
+              <SidebarMenu className="gap-0.5">
+                {group.items.map(item => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild><NavItem item={item} /></SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
 
       {/* Footer */}

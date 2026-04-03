@@ -9,6 +9,7 @@ export type Cliente = {
   id: string; nome: string; empresa: string; telefone: string; email: string;
   segmento: string; cargo?: string; cidade?: string; estado?: string;
   cnpj?: string; observacoes?: string; status?: string; created_at: string;
+  projeto_id?: string | null;
 };
 
 export type Interacao = {
