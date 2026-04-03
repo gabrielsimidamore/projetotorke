@@ -10,15 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import {
   Plus, Loader2, Trash2, ZoomIn, ZoomOut, Maximize2, Link2, Link2Off,
   StickyNote, FolderKanban, Lightbulb, MessageSquare, Users, GripVertical,
-  X, ChevronDown, ChevronRight, LayoutGrid, Network,
+  X, LayoutGrid, Network,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-const COR_OPCOES = [
-  '#6366f1', '#3b82f6', '#22c55e', '#f59e0b', '#ef4444',
-  '#a855f7', '#06b6d4', '#10b981', '#f97316', '#ec4899',
-  '#64748b', '#fbbf24',
-];
+import { COR_OPCOES } from '@/lib/constants';
 
 const TIPO_CFG: Record<string, { label: string; icon: any; defaultColor: string }> = {
   nota:      { label: 'Nota',      icon: StickyNote,     defaultColor: '#f59e0b' },

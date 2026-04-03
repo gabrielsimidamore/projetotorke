@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { supabase } from '@/lib/supabase';
 import {
   Users, Lightbulb, MessageSquare,
-  Star, BarChart2, ArrowUpRight, ArrowDownRight,
+  Star, ArrowUpRight, ArrowDownRight,
   Minus, AlertTriangle, FolderKanban, CalendarDays, TrendingUp,
 } from 'lucide-react';
 import {
@@ -12,17 +12,9 @@ import {
   Tooltip, ResponsiveContainer,
 } from 'recharts';
 
-const ACCENT = '#e5a700', BLUE = '#3b82f6', GREEN = '#22c55e', RED = '#ef4444', PURPLE = '#a855f7', CYAN = '#06b6d4';
+import { STATUS_COLS, CHART_COLORS } from '@/lib/constants';
 
-const STATUS_COLS = [
-  { id: 'prospeccao', title: 'Prospecção', color: ACCENT },
-  { id: 'proposta_enviada', title: 'Proposta Enviada', color: BLUE },
-  { id: 'em_negociacao', title: 'Em Negociação', color: PURPLE },
-  { id: 'aprovado', title: 'Aprovado', color: GREEN },
-  { id: 'em_execucao', title: 'Em Execução', color: CYAN },
-  { id: 'concluido', title: 'Concluído', color: '#10b981' },
-  { id: 'perdido', title: 'Perdido', color: RED },
-];
+const { ACCENT, BLUE, GREEN, CYAN, PURPLE } = CHART_COLORS;
 
 function useCountUp(target: number, duration = 900) {
   const [value, setValue] = useState(0);
@@ -79,40 +71,37 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 export default function Dashboard() {
   const navigate = useNavigate();
   const [ideias, setIdeias] = useState<any[]>([]);
-  const [posts, setPosts] = useState<any[]>([]);
   const [metricas, setMetricas] = useState<any[]>([]);
-  const [_recomendacoes, setRecomendacoes] = useState<any[]>([]);
   const [clientes, setClientes] = useState<any[]>([]);
   const [interacoes, setInteracoes] = useState<any[]>([]);
   const [projetos, setProjetos] = useState<any[]>([]);
   const [reunioes, setReunioes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const today = new Date().toISOString().split('T')[0];
-  const next7 = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
+  const [today, next7] = useMemo(() => {
+    const t = new Date().toISOString().split('T')[0];
+    const n = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
+    return [t, n];
+  }, []);
 
   useEffect(() => {
     Promise.all([
       supabase.from('ideias').select('*'),
-      supabase.from('posts').select('*'),
       supabase.from('metricas').select('*').order('data_post', { ascending: false }),
-      supabase.from('recomendacoes').select('*'),
       supabase.from('clientes').select('*'),
       supabase.from('interacoes').select('*, clientes(nome, empresa)').order('data_interacao', { ascending: false }).limit(20),
       supabase.from('projetos').select('*, clientes(nome, empresa)').order('ordem').limit(100),
       supabase.from('reunioes').select('*').gte('data', today).lte('data', next7).order('data'),
-    ]).then(([i, p, m, r, c, int, proj, reu]) => {
+    ]).then(([i, m, c, int, proj, reu]) => {
       setIdeias(i.data ?? []);
-      setPosts(p.data ?? []);
       setMetricas(m.data ?? []);
-      setRecomendacoes(r.data ?? []);
       setClientes(c.data ?? []);
       setInteracoes(int.data ?? []);
       setProjetos(proj.data ?? []);
       setReunioes(reu.data ?? []);
       setLoading(false);
     });
-  }, []);
+  }, [today, next7]);
 
   const avgScore = metricas.length ? Math.round(metricas.reduce((a, m) => a + (m.score_performance ?? 0), 0) / metricas.length) : 0;
   const openInteracoes = interacoes.filter(i => i.status === 'aberto' || i.status === 'pendente').length;

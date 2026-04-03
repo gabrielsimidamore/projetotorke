@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { ProjectProvider } from "@/contexts/ProjectContext";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Clientes from "./pages/Clientes";
@@ -44,6 +45,7 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
+      <ProjectProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -69,6 +71,7 @@ const App = () => (
           </BrowserRouter>
         </AuthProvider>
       </TooltipProvider>
+      </ProjectProvider>
     </ThemeProvider>
   </QueryClientProvider>
 );

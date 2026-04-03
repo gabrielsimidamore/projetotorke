@@ -4,17 +4,32 @@ import { GlobalSearch } from '@/components/GlobalSearch';
 import { Notifications } from '@/components/Notifications';
 import { Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useProject } from '@/contexts/ProjectContext';
 
 interface LayoutProps { children: React.ReactNode; }
 
 const Layout = ({ children }: LayoutProps) => {
+  const { project } = useProject();
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-12 flex items-center justify-between px-4 shrink-0 border-b border-border bg-card">
-            <SidebarTrigger className="text-muted-foreground hover:text-foreground transition-colors" />
+          <header
+            className="h-12 flex items-center justify-between px-4 shrink-0 border-b transition-colors duration-300"
+            style={project
+              ? { borderBottomColor: project.color + '55', backgroundColor: project.color + '12' }
+              : undefined}
+          >
+            <div className="flex items-center gap-2">
+              <SidebarTrigger className="text-muted-foreground hover:text-foreground transition-colors" />
+              {project && (
+                <span className="text-xs font-semibold" style={{ color: project.color }}>
+                  {project.name}
+                </span>
+              )}
+            </div>
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"

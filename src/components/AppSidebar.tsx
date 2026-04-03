@@ -7,6 +7,7 @@ import {
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useProject } from '@/contexts/ProjectContext';
 import { supabase, type Projeto } from '@/lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import logo from '@/assets/logo-torke.jpeg';
@@ -56,7 +57,10 @@ export function AppSidebar() {
   const collapsed = state === 'collapsed';
   const { signOut, user } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { project } = useProject();
   const navigate = useNavigate();
+
+  const accentColor = project?.color ?? 'hsl(var(--primary))';
 
   const [projetosOpen, setProjetosOpen] = useState(true);
   const [projetos, setProjetos] = useState<Pick<Projeto, 'id' | 'nome' | 'cor' | 'foto_url'>[]>([]);
@@ -83,7 +87,8 @@ export function AppSidebar() {
         to={item.url}
         end={item.url === '/'}
         className="flex items-center gap-2.5 px-2.5 rounded-md transition-all duration-150 h-9 text-sm text-muted-foreground hover:text-foreground hover:bg-accent"
-        activeClassName="bg-primary/10 text-primary font-medium"
+        activeClassName="font-medium"
+        activeStyle={{ backgroundColor: accentColor + '18', color: accentColor }}
       >
         <item.icon className="w-4 h-4 shrink-0" />
         {!collapsed && <span>{item.title}</span>}
@@ -161,7 +166,8 @@ export function AppSidebar() {
                         <NavLink
                           to="/projetos"
                           className="flex items-center gap-2 px-2.5 rounded-md h-8 text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-all"
-                          activeClassName="bg-primary/10 text-primary font-medium"
+                          activeClassName="font-medium"
+                          activeStyle={{ backgroundColor: accentColor + '18', color: accentColor }}
                         >
                           <LayoutDashboard className="w-3.5 h-3.5 shrink-0" />
                           Ver todos
@@ -224,7 +230,8 @@ export function AppSidebar() {
                         <NavLink
                           to="/projetos"
                           className="flex items-center px-2.5 rounded-md h-9 text-muted-foreground hover:text-foreground hover:bg-accent transition-all"
-                          activeClassName="bg-primary/10 text-primary font-medium"
+                          activeClassName="font-medium"
+                          activeStyle={{ backgroundColor: accentColor + '18', color: accentColor }}
                         >
                           <FolderKanban className="w-4 h-4 shrink-0" />
                         </NavLink>

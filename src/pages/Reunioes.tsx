@@ -109,12 +109,12 @@ export default function Reunioes() {
   // Map: date string -> reunioes[]
   const reunioesByDate = useMemo(() => {
     const map: Record<string, Reuniao[]> = {};
-    for (const r of reunioes) {
+    for (const r of reunioesFiltradas) {
       if (!map[r.data]) map[r.data] = [];
       map[r.data].push(r);
     }
     return map;
-  }, [reunioes]);
+  }, [reunioesFiltradas]);
 
   // Calendar grid
   const calendarDays = useMemo(() => {

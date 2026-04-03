@@ -6,6 +6,7 @@ import {
   Building2, Phone, Mail, CheckCheck, Calendar,
 } from 'lucide-react';
 import Layout from '@/components/Layout';
+import { useProject } from '@/contexts/ProjectContext';
 import { useToast } from '@/hooks/use-toast';
 import {
   supabase, type CustoProjeto, type Projeto, type ProjetoIdeia,
@@ -52,7 +53,7 @@ const formatCurrency = (v?: number | null) =>
 const formatDate = (v?: string | null) =>
   v ? new Date(v).toLocaleDateString('pt-BR') : '—';
 
-function getBadgeStyle(status?: string | null, accentColor = '#6366f1') {
+function getBadgeStyle(status?: string | null) {
   switch (status) {
     case 'aprovado': case 'concluido': case 'receita':
       return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300';
@@ -88,6 +89,7 @@ const ProjetoDetalhe = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { setProject } = useProject();
 
   const [loading, setLoading] = useState(true);
   const [projeto, setProjeto] = useState<Projeto | null>(null);
@@ -164,6 +166,11 @@ const ProjetoDetalhe = () => {
   };
 
   useEffect(() => { void loadData(); }, [id]);
+
+  useEffect(() => {
+    if (projeto) setProject({ color: projeto.cor || '#6366f1', name: projeto.nome });
+    return () => setProject(null);
+  }, [projeto?.id, projeto?.cor, projeto?.nome]);
 
   const resumo = useMemo(() => {
     const receitas = custos.filter(i => i.tipo === 'receita').reduce((a, i) => a + Number(i.valor ?? 0), 0);

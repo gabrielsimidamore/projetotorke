@@ -108,9 +108,9 @@ export default function Interacoes() {
     if (toComplete.length === 0) return;
     const ids = toComplete.map((i: any) => i.id);
     await supabase.from('interacoes').update({ status: 'concluido' }).in('id', ids);
-    if (toComplete.length > 0) {
-      toast({ title: `${toComplete.length} interaç${toComplete.length > 1 ? 'ões concluídas' : 'ão concluída'} automaticamente` });
-    }
+    const idSet = new Set(ids);
+    setInteracoes(prev => prev.map(i => idSet.has(i.id) ? { ...i, status: 'concluido' } : i));
+    toast({ title: `${toComplete.length} interaç${toComplete.length > 1 ? 'ões concluídas' : 'ão concluída'} automaticamente` });
   };
 
   useEffect(() => {
@@ -622,9 +622,23 @@ export default function Interacoes() {
                                 <HI className="w-4 h-4 shrink-0 mt-0.5" style={{ color: hc.color }} />
                                 <div className="flex-1 min-w-0">
                                   <p className="text-sm text-foreground/80">{h.mensagem || 'Sem mensagem'}</p>
-                                  <div className="flex items-center gap-2 mt-1">
+                                  <div className="flex items-center gap-2 mt-1 flex-wrap">
                                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${hs.class}`}>{hs.label}</span>
                                     <span className="text-xs text-muted-foreground">{relTime(h.data_interacao)}</span>
+                                    {h.status !== 'concluido' && h.status !== 'aprovado' && h.status !== 'resolvido' && (
+                                      <button
+                                        className="text-[10px] text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 font-medium"
+                                        disabled={approvingId === h.id}
+                                        onClick={async () => {
+                                          setApprovingId(h.id);
+                                          await supabase.from('interacoes').update({ status: 'concluido' }).eq('id', h.id);
+                                          setClienteHistory(prev => prev.map(x => x.id === h.id ? { ...x, status: 'concluido' } : x));
+                                          setApprovingId(null);
+                                        }}
+                                      >
+                                        {approvingId === h.id ? '...' : 'Concluir'}
+                                      </button>
+                                    )}
                                   </div>
                                 </div>
                               </div>
