@@ -19,7 +19,7 @@ const Layout = ({ children }: LayoutProps) => {
           <header
             className="h-12 flex items-center justify-between px-4 shrink-0 border-b transition-colors duration-300"
             style={project
-              ? { borderBottomColor: project.color + '55', backgroundColor: project.color + '12' }
+              ? { borderBottomColor: project.color, backgroundColor: project.color + '18' }
               : undefined}
           >
             <div className="flex items-center gap-2">

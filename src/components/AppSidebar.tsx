@@ -60,7 +60,7 @@ export function AppSidebar() {
   const { project } = useProject();
   const navigate = useNavigate();
 
-  const accentColor = project?.color ?? 'hsl(var(--primary))';
+  const accentColor = project?.color ?? null;
 
   const [projetosOpen, setProjetosOpen] = useState(true);
   const [projetos, setProjetos] = useState<Pick<Projeto, 'id' | 'nome' | 'cor' | 'foto_url'>[]>([]);
@@ -87,8 +87,8 @@ export function AppSidebar() {
         to={item.url}
         end={item.url === '/'}
         className="flex items-center gap-2.5 px-2.5 rounded-md transition-all duration-150 h-9 text-sm text-muted-foreground hover:text-foreground hover:bg-accent"
-        activeClassName="font-medium"
-        activeStyle={{ backgroundColor: accentColor + '18', color: accentColor }}
+        activeClassName={accentColor ? 'font-medium' : 'bg-primary/10 text-primary font-medium'}
+        activeStyle={accentColor ? { backgroundColor: accentColor + '25', color: accentColor } : undefined}
       >
         <item.icon className="w-4 h-4 shrink-0" />
         {!collapsed && <span>{item.title}</span>}
@@ -107,19 +107,30 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarContent className="bg-sidebar border-r border-sidebar-border">
+      <SidebarContent
+        className="bg-sidebar border-r border-sidebar-border transition-colors duration-300"
+        style={accentColor ? { borderRightColor: accentColor + '60' } : undefined}
+      >
 
-        {/* Logo */}
+        {/* Logo + project badge */}
         <SidebarGroup>
           <div className="flex items-center gap-2.5 px-3 py-4">
             <img src={logo} alt="Torke" className="w-8 h-8 rounded-lg object-contain shrink-0 border border-border" />
             {!collapsed && (
               <div className="overflow-hidden">
                 <p className="font-semibold text-foreground truncate leading-tight text-sm">Torke Assistem</p>
-                <p className="text-xs text-muted-foreground truncate">CRM Autopeças</p>
+                {accentColor && project ? (
+                  <p className="text-xs font-medium truncate" style={{ color: accentColor }}>{project.name}</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground truncate">CRM Autopeças</p>
+                )}
               </div>
             )}
           </div>
+          {/* Colored strip when inside a project */}
+          {accentColor && (
+            <div className="mx-3 mb-1 h-0.5 rounded-full transition-all duration-300" style={{ backgroundColor: accentColor }} />
+          )}
         </SidebarGroup>
 
         {/* Nav groups */}
@@ -166,8 +177,8 @@ export function AppSidebar() {
                         <NavLink
                           to="/projetos"
                           className="flex items-center gap-2 px-2.5 rounded-md h-8 text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-all"
-                          activeClassName="font-medium"
-                          activeStyle={{ backgroundColor: accentColor + '18', color: accentColor }}
+                          activeClassName={accentColor ? 'font-medium' : 'bg-primary/10 text-primary font-medium'}
+                          activeStyle={accentColor ? { backgroundColor: accentColor + '25', color: accentColor } : undefined}
                         >
                           <LayoutDashboard className="w-3.5 h-3.5 shrink-0" />
                           Ver todos
@@ -230,8 +241,8 @@ export function AppSidebar() {
                         <NavLink
                           to="/projetos"
                           className="flex items-center px-2.5 rounded-md h-9 text-muted-foreground hover:text-foreground hover:bg-accent transition-all"
-                          activeClassName="font-medium"
-                          activeStyle={{ backgroundColor: accentColor + '18', color: accentColor }}
+                          activeClassName={accentColor ? 'font-medium' : 'bg-primary/10 text-primary font-medium'}
+                          activeStyle={accentColor ? { backgroundColor: accentColor + '25', color: accentColor } : undefined}
                         >
                           <FolderKanban className="w-4 h-4 shrink-0" />
                         </NavLink>
