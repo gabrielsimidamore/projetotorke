@@ -21,6 +21,7 @@ import ReunioesPag from "./pages/Reunioes";
 import NotificacoesPage from "./pages/Notificacoes";
 import NotFound from "./pages/NotFound";
 import InsightsPage from "./pages/Insights";
+import MelhoriasPage from "./pages/Melhorias";
 
 const queryClient = new QueryClient();
 
@@ -66,6 +67,7 @@ const App = () => (
               <Route path="/reunioes" element={<ProtectedRoute><ReunioesPag /></ProtectedRoute>} />
               <Route path="/notificacoes" element={<ProtectedRoute><NotificacoesPage /></ProtectedRoute>} />
               <Route path="/insights" element={<ProtectedRoute><InsightsPage /></ProtectedRoute>} />
+              <Route path="/melhorias" element={<ProtectedRoute><MelhoriasPage /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

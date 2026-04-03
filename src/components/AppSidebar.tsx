@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   LayoutDashboard, Lightbulb, FileText, BarChart3, Sparkles,
   LogOut, Sun, Moon, MessageSquare, FolderKanban, ShoppingCart,
-  CalendarDays, Bell, ChevronDown, ChevronRight, Plus, Network,
+  CalendarDays, Bell, ChevronDown, ChevronRight, Plus, Network, Wrench,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
@@ -47,6 +47,7 @@ const navGroups = [
     items: [
       { title: 'Métricas', url: '/metricas', icon: BarChart3 },
       { title: 'Recomendações', url: '/recomendacoes', icon: Sparkles },
+      { title: 'Melhorias', url: '/melhorias', icon: Wrench },
     ],
   },
 ];
@@ -73,11 +74,15 @@ export function AppSidebar() {
       .limit(15)
       .then(({ data }) => setProjetos(data ?? []));
 
-    supabase
+    const email = user?.email?.toLowerCase();
+    const notifQuery = supabase
       .from('notificacoes')
       .select('id', { count: 'exact', head: true })
-      .eq('lida', false)
-      .then(({ count }) => setNotifCount(count ?? 0));
+      .eq('lida', false);
+    (email
+      ? notifQuery.or(`destinatario_email.is.null,destinatario_email.eq.${email}`)
+      : notifQuery
+    ).then(({ count }) => setNotifCount(count ?? 0));
   }, []);
 
   const NavItem = ({ item }: { item: typeof navGroups[0]['items'][0] }) => {

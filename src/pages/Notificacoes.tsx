@@ -3,6 +3,12 @@ import { BellRing, CheckCheck, Loader2, RefreshCcw } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { useToast } from '@/hooks/use-toast';
 import { supabase, type Notificacao } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
+
+const USER_NAMES: Record<string, string> = {
+  'gabrielsipinheiro@gmail.com': 'Gabriel Pinheiro',
+  'pinheirojunior812@gmail.com': 'Junior Pinheiro',
+};
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,8 +41,10 @@ const formatDateTime = (value: string) => (
 
 const NotificacoesPage = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [notificacoes, setNotificacoes] = useState<Notificacao[]>([]);
+  const userName = user?.email ? USER_NAMES[user.email.toLowerCase()] ?? null : null;
 
   const buildFallbackNotifications = async () => {
     const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
@@ -96,11 +104,18 @@ const NotificacoesPage = () => {
   const fetchNotifications = async () => {
     setLoading(true);
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('notificacoes')
       .select('*')
       .order('created_at', { ascending: false })
       .limit(100);
+
+    // Filter by current user: show notifications directed to them OR global (no destinatario)
+    if (user?.email) {
+      query = query.or(`destinatario_email.is.null,destinatario_email.eq.${user.email.toLowerCase()}`);
+    }
+
+    const { data, error } = await query;
 
     if (error || !data || data.length === 0) {
       const fallback = await buildFallbackNotifications();
@@ -146,7 +161,9 @@ const NotificacoesPage = () => {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Notificações</h1>
-            <p className="text-sm text-muted-foreground">Acompanhe alertas, menções e pendências do workspace.</p>
+            <p className="text-sm text-muted-foreground">
+              {userName ? `Exibindo notificações de ${userName}` : 'Acompanhe alertas, menções e pendências do workspace.'}
+            </p>
           </div>
 
           <div className="flex items-center gap-2">

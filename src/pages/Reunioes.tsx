@@ -106,16 +106,6 @@ export default function Reunioes() {
 
   useEffect(() => { fetchReunioes(); }, []);
 
-  // Map: date string -> reunioes[]
-  const reunioesByDate = useMemo(() => {
-    const map: Record<string, Reuniao[]> = {};
-    for (const r of reunioesFiltradas) {
-      if (!map[r.data]) map[r.data] = [];
-      map[r.data].push(r);
-    }
-    return map;
-  }, [reunioesFiltradas]);
-
   // Calendar grid
   const calendarDays = useMemo(() => {
     const { year, month } = calendarDate;
@@ -155,6 +145,7 @@ export default function Reunioes() {
       participantes: (r.participantes ?? []).join(', '),
       responsavel: r.responsavel ?? '',
       status: r.status,
+      projeto_id: (r as any).projeto_id ?? '',
     });
     setDialogOpen(true);
   };
@@ -218,9 +209,19 @@ export default function Reunioes() {
 
   const reunioesFiltradas = useMemo(() => {
     if (projetoFilter === 'todos') return reunioes;
-    if (projetoFilter === 'sem_projeto') return reunioes.filter(r => !r.projeto_id);
-    return reunioes.filter(r => r.projeto_id === projetoFilter);
+    if (projetoFilter === 'sem_projeto') return reunioes.filter(r => !(r as any).projeto_id);
+    return reunioes.filter(r => (r as any).projeto_id === projetoFilter);
   }, [reunioes, projetoFilter]);
+
+  // Map: date string -> reunioes[]
+  const reunioesByDate = useMemo(() => {
+    const map: Record<string, Reuniao[]> = {};
+    for (const r of reunioesFiltradas) {
+      if (!map[r.data]) map[r.data] = [];
+      map[r.data].push(r);
+    }
+    return map;
+  }, [reunioesFiltradas]);
 
   const reunioesDoMes = useMemo(() => {
     const { year, month } = calendarDate;
@@ -601,6 +602,18 @@ export default function Reunioes() {
                 value={form.responsavel}
                 onChange={e => setForm(f => ({ ...f, responsavel: e.target.value }))}
               />
+              <div className="flex gap-1.5 mt-1">
+                {['Gabriel Pinheiro', 'Junior Pinheiro'].map(name => (
+                  <button
+                    key={name}
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, responsavel: name }))}
+                    className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${form.responsavel === name ? 'border-primary bg-primary/10 text-primary font-medium' : 'border-border text-muted-foreground hover:bg-accent'}`}
+                  >
+                    {name}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="sm:col-span-2 space-y-1.5">

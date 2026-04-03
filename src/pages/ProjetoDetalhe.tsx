@@ -161,6 +161,50 @@ const ProjetoDetalhe = () => {
     setSelectedTarefa(null);
   };
 
+  // Interações management
+  const [intDateFrom, setIntDateFrom] = useState('');
+  const [intDateTo, setIntDateTo] = useState('');
+  const [deletingIntId, setDeletingIntId] = useState<string | null>(null);
+  const [editInteracao, setEditInteracao] = useState<any | null>(null);
+  const [savingEditInt, setSavingEditInt] = useState(false);
+
+  const interacoesFiltradas = interacoes.filter(int => {
+    if (intDateFrom && int.data_interacao < intDateFrom) return false;
+    if (intDateTo && int.data_interacao > intDateTo + 'T23:59:59') return false;
+    return true;
+  });
+
+  const handleDeleteInteracao = async (intId: string) => {
+    setDeletingIntId(intId);
+    const { error } = await supabase.from('interacoes').delete().eq('id', intId);
+    setDeletingIntId(null);
+    if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+    setInteracoes(prev => prev.filter(i => i.id !== intId));
+    toast({ title: 'Interação removida' });
+  };
+
+  const handleCompleteInteracao = async (intId: string) => {
+    const { error } = await supabase.from('interacoes').update({ status: 'concluido' }).eq('id', intId);
+    if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+    setInteracoes(prev => prev.map(i => i.id === intId ? { ...i, status: 'concluido' } : i));
+    toast({ title: 'Concluída!' });
+  };
+
+  const handleUpdateInteracao = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editInteracao) return;
+    setSavingEditInt(true);
+    const { error } = await supabase.from('interacoes').update({
+      mensagem: editInteracao.mensagem, status: editInteracao.status,
+      canal: editInteracao.canal, proxima_acao: editInteracao.proxima_acao,
+    }).eq('id', editInteracao.id);
+    setSavingEditInt(false);
+    if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+    setInteracoes(prev => prev.map(i => i.id === editInteracao.id ? { ...i, ...editInteracao } : i));
+    toast({ title: 'Interação atualizada!' });
+    setEditInteracao(null);
+  };
+
   // Nova reunião
   const [reuniaoDialog, setReuniaoDialog] = useState(false);
   const [savingReuniao, setSavingReuniao] = useState(false);
@@ -791,21 +835,41 @@ const ProjetoDetalhe = () => {
           {/* ─── INTERAÇÕES ─── */}
           <TabsContent value="interacoes">
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-3">
-                <div>
-                  <CardTitle className="text-lg">Interações do Projeto</CardTitle>
-                  <CardDescription>Todas as interações vinculadas a este projeto.</CardDescription>
+              <CardHeader className="pb-3">
+                <div className="flex flex-row items-center justify-between gap-2">
+                  <div>
+                    <CardTitle className="text-lg">Interações do Projeto</CardTitle>
+                    <CardDescription>{interacoesFiltradas.length} de {interacoes.length} interações.</CardDescription>
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => navigate('/interacoes')} className="gap-1.5 shrink-0 text-xs">
+                    <MessageSquare className="w-3.5 h-3.5" />Ver todas
+                  </Button>
                 </div>
-                <Button size="sm" variant="outline" onClick={() => navigate('/interacoes')} className="gap-1.5 shrink-0 text-xs">
-                  <MessageSquare className="w-3.5 h-3.5" />Ver todas
-                </Button>
+                {/* Date filter */}
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <span>De:</span>
+                    <Input type="date" value={intDateFrom} onChange={e => setIntDateFrom(e.target.value)} className="h-7 text-xs w-36" />
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <span>Até:</span>
+                    <Input type="date" value={intDateTo} onChange={e => setIntDateTo(e.target.value)} className="h-7 text-xs w-36" />
+                  </div>
+                  {(intDateFrom || intDateTo) && (
+                    <button onClick={() => { setIntDateFrom(''); setIntDateTo(''); }} className="text-xs text-muted-foreground hover:text-foreground">
+                      Limpar
+                    </button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent className="space-y-3">
-                {interacoes.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-4 text-center">Nenhuma interação vinculada. Ao registrar interações, vincule-as a este projeto.</p>
+                {interacoesFiltradas.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-4 text-center">
+                    {interacoes.length === 0 ? 'Nenhuma interação vinculada.' : 'Nenhuma interação no período selecionado.'}
+                  </p>
                 ) : (
-                  interacoes.map(int => (
-                    <div key={int.id} className="border border-border rounded-xl p-4" style={{ borderLeftColor: accentColor, borderLeftWidth: 3 }}>
+                  interacoesFiltradas.map(int => (
+                    <div key={int.id} className="border border-border rounded-xl p-4 group" style={{ borderLeftColor: accentColor, borderLeftWidth: 3 }}>
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
@@ -819,15 +883,78 @@ const ProjetoDetalhe = () => {
                             <span>{new Date(int.data_interacao).toLocaleDateString('pt-BR')}</span>
                           </div>
                         </div>
-                        <Badge className={getBadgeStyle(int.status)}>
-                          {STATUS_INTERACAO[int.status] || int.status}
-                        </Badge>
+                        <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+                          <Badge className={getBadgeStyle(int.status)}>{STATUS_INTERACAO[int.status] || int.status}</Badge>
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {int.status !== 'concluido' && (
+                              <button
+                                onClick={() => handleCompleteInteracao(int.id)}
+                                className="text-xs px-2 py-0.5 rounded bg-green-100 text-green-700 hover:bg-green-200 transition-colors"
+                              >
+                                Concluir
+                              </button>
+                            )}
+                            <button
+                              onClick={() => setEditInteracao({ ...int })}
+                              className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteInteracao(int.id)}
+                              disabled={deletingIntId === int.id}
+                              className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-red-50 transition-colors"
+                            >
+                              {deletingIntId === int.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ))
                 )}
               </CardContent>
             </Card>
+
+            {/* Edit interaction dialog */}
+            <Dialog open={!!editInteracao} onOpenChange={open => { if (!open) setEditInteracao(null); }}>
+              <DialogContent className="max-w-md">
+                <DialogHeader><DialogTitle>Editar Interação</DialogTitle></DialogHeader>
+                {editInteracao && (
+                  <form onSubmit={handleUpdateInteracao} className="space-y-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Status</Label>
+                      <Select value={editInteracao.status} onValueChange={v => setEditInteracao({ ...editInteracao, status: v })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(STATUS_INTERACAO).map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Canal</Label>
+                      <Select value={editInteracao.canal} onValueChange={v => setEditInteracao({ ...editInteracao, canal: v })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(CANAL_LABELS).map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Mensagem</Label>
+                      <Textarea value={editInteracao.mensagem || ''} onChange={e => setEditInteracao({ ...editInteracao, mensagem: e.target.value })} rows={3} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Próxima ação</Label>
+                      <Input value={editInteracao.proxima_acao || ''} onChange={e => setEditInteracao({ ...editInteracao, proxima_acao: e.target.value })} />
+                    </div>
+                    <Button type="submit" className="w-full" disabled={savingEditInt} style={{ backgroundColor: accentColor }}>
+                      {savingEditInt && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Salvar
+                    </Button>
+                  </form>
+                )}
+              </DialogContent>
+            </Dialog>
           </TabsContent>
 
           {/* ─── CLIENTES ─── */}

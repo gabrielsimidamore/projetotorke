@@ -74,8 +74,10 @@ export default function Insights() {
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState<{ nodeId: string; startX: number; startY: number; nodeX: number; nodeY: number } | null>(null);
   const [panning, setPanning] = useState<{ startX: number; startY: number; panX: number; panY: number } | null>(null);
+  const [resizing, setResizing] = useState<{ nodeId: string; startX: number; startY: number; startW: number; startH: number } | null>(null);
   const [connecting, setConnecting] = useState<string | null>(null); // source node id
   const [selected, setSelected] = useState<string | null>(null);
+  const [clipboard, setClipboard] = useState<CanvasNode | null>(null);
 
   // Dialogs
   const [canvasDialog, setCanvasDialog] = useState(false);
@@ -209,26 +211,31 @@ export default function Insights() {
     if (dragging) {
       const dx = (e.clientX - dragging.startX) / zoom;
       const dy = (e.clientY - dragging.startY) / zoom;
-      const newX = dragging.nodeX + dx;
-      const newY = dragging.nodeY + dy;
-      setNodes(prev => prev.map(n => n.id === dragging.nodeId ? { ...n, x: newX, y: newY } : n));
+      setNodes(prev => prev.map(n => n.id === dragging.nodeId ? { ...n, x: dragging.nodeX + dx, y: dragging.nodeY + dy } : n));
+    } else if (resizing) {
+      const dx = (e.clientX - resizing.startX) / zoom;
+      const dy = (e.clientY - resizing.startY) / zoom;
+      setNodes(prev => prev.map(n => n.id === resizing.nodeId
+        ? { ...n, largura: Math.max(140, resizing.startW + dx), altura: Math.max(80, resizing.startH + dy) }
+        : n));
     } else if (panning) {
-      const dx = e.clientX - panning.startX;
-      const dy = e.clientY - panning.startY;
-      setPan({ x: panning.panX + dx, y: panning.panY + dy });
+      setPan({ x: panning.panX + (e.clientX - panning.startX), y: panning.panY + (e.clientY - panning.startY) });
     }
-  }, [dragging, panning, zoom]);
+  }, [dragging, resizing, panning, zoom]);
 
   const handleMouseUp = useCallback(async () => {
     if (dragging) {
       const node = nodes.find(n => n.id === dragging.nodeId);
-      if (node) {
-        await supabase.from('canvas_nodes').update({ x: node.x, y: node.y }).eq('id', node.id);
-      }
+      if (node) await supabase.from('canvas_nodes').update({ x: node.x, y: node.y }).eq('id', node.id);
       setDragging(null);
     }
+    if (resizing) {
+      const node = nodes.find(n => n.id === resizing.nodeId);
+      if (node) await supabase.from('canvas_nodes').update({ largura: node.largura, altura: node.altura }).eq('id', node.id);
+      setResizing(null);
+    }
     if (panning) setPanning(null);
-  }, [dragging, panning, nodes]);
+  }, [dragging, resizing, panning, nodes]);
 
   useEffect(() => {
     window.addEventListener('mousemove', handleMouseMove);
@@ -238,6 +245,36 @@ export default function Insights() {
       window.removeEventListener('mouseup', handleMouseUp);
     };
   }, [handleMouseMove, handleMouseUp]);
+
+  // Keyboard shortcuts: Ctrl+C, Ctrl+V, Delete
+  useEffect(() => {
+    const onKey = async (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (!activeCanvas) return;
+      if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+        const node = nodes.find(n => n.id === selected);
+        if (node) { setClipboard(node); toast({ title: 'Nó copiado' }); }
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+        if (!clipboard) return;
+        e.preventDefault();
+        const { data, error } = await supabase.from('canvas_nodes').insert({
+          canvas_id: activeCanvas.id, tipo: clipboard.tipo,
+          titulo: clipboard.titulo ? clipboard.titulo + ' (cópia)' : '',
+          conteudo: clipboard.conteudo, cor: clipboard.cor,
+          x: clipboard.x + 24, y: clipboard.y + 24,
+          largura: clipboard.largura, altura: clipboard.altura,
+        }).select().single();
+        if (!error && data) { setNodes(prev => [...prev, data]); setSelected(data.id); }
+      }
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selected) {
+        await handleDeleteNode(selected);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selected, clipboard, activeCanvas, nodes]);
 
   const handleCanvasMouseDown = (e: React.MouseEvent) => {
     if (e.button === 1 || (e.button === 0 && !connecting)) {
@@ -470,22 +507,33 @@ export default function Insights() {
             className="absolute inset-0 pointer-events-none"
             style={{ width: '100%', height: '100%', overflow: 'visible' }}
           >
+            <defs>
+              <marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5"
+                markerUnits="strokeWidth" markerWidth="6" markerHeight="5" orient="auto">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="hsl(var(--primary))" fillOpacity="0.8" />
+              </marker>
+            </defs>
             <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
               {edges.map(edge => {
                 const s = getNodeCenter(edge.source_id);
                 const t = getNodeCenter(edge.target_id);
-                const mx = (s.x + t.x) / 2;
-                const my = (s.y + t.y) / 2;
+                const dx = t.x - s.x;
+                const cp1x = s.x + dx * 0.4;
+                const cp2x = t.x - dx * 0.4;
+                const d = `M ${s.x} ${s.y} C ${cp1x} ${s.y}, ${cp2x} ${t.y}, ${t.x} ${t.y}`;
+                const mx = (s.x + cp1x + cp2x + t.x) / 4;
+                const my = (s.y + s.y + t.y + t.y) / 4;
                 return (
                   <g key={edge.id} className="pointer-events-auto">
-                    <line
-                      x1={s.x} y1={s.y} x2={t.x} y2={t.y}
+                    <path
+                      d={d}
                       stroke="hsl(var(--primary))"
                       strokeWidth={1.5 / zoom}
-                      strokeOpacity={0.6}
-                      strokeDasharray={`${4 / zoom} ${3 / zoom}`}
+                      strokeOpacity={0.75}
+                      fill="none"
+                      markerEnd="url(#arrowhead)"
                     />
-                    {/* Delete edge button */}
+                    {/* Delete edge button at midpoint */}
                     <circle
                       cx={mx} cy={my} r={8 / zoom}
                       fill="hsl(var(--card))"
@@ -500,7 +548,7 @@ export default function Insights() {
                       dominantBaseline="central"
                       fontSize={8 / zoom}
                       fill="hsl(var(--muted-foreground))"
-                      className="cursor-pointer pointer-events-none"
+                      className="pointer-events-none"
                     >×</text>
                   </g>
                 );
@@ -559,9 +607,20 @@ export default function Insights() {
                   {node.conteudo && (
                     <p className="text-xs text-foreground/80 px-2.5 py-2 leading-relaxed whitespace-pre-wrap">{node.conteudo}</p>
                   )}
-                  {/* Drag handle indicator */}
-                  <div className="absolute bottom-1 right-1.5 opacity-20 group-hover:opacity-40 transition-opacity">
-                    <GripVertical className="w-3 h-3 text-muted-foreground" />
+                  {/* Resize handle — bottom-right corner */}
+                  <div
+                    className="absolute bottom-0 right-0 w-5 h-5 opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity"
+                    style={{ cursor: 'se-resize' }}
+                    onMouseDown={e => {
+                      e.stopPropagation();
+                      const n = nodes.find(x => x.id === node.id)!;
+                      setResizing({ nodeId: node.id, startX: e.clientX, startY: e.clientY, startW: n.largura, startH: n.altura });
+                    }}
+                  >
+                    <svg viewBox="0 0 10 10" className="w-5 h-5 text-muted-foreground">
+                      <line x1="4" y1="10" x2="10" y2="4" stroke="currentColor" strokeWidth="1.5" />
+                      <line x1="7" y1="10" x2="10" y2="7" stroke="currentColor" strokeWidth="1.5" />
+                    </svg>
                   </div>
                 </div>
               );
