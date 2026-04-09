@@ -1,0 +1,224 @@
+{
+  "name": "Fluxo 2 — Resumo Semanal de Performance",
+  "nodes": [
+    {
+      "id": "node-trigger",
+      "name": "Todo Domingo às 07:30",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [180, 300],
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "cronExpression", "expression": "30 7 * * 0" }]
+        }
+      }
+    },
+    {
+      "id": "node-get-ideias",
+      "name": "GET Ideias da Semana",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [400, 180],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://dzhtmesadorwylshytbi.supabase.co/rest/v1/ideias?select=id,assunto_tema,plataforma,formato,status,motivo_rejeicao,observacoes,created_at&created_at=gte.{{ new Date(Date.now()-7*86400000).toISOString() }}&order=created_at.desc",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey",        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6aHRtZXNhZG9yd3lsc2h5dGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDM3MjIsImV4cCI6MjA4ODM3OTcyMn0.kLBIWCi2ydrYJhsetV2nE72QtFn0c50iNUbr5Ve1oQo" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6aHRtZXNhZG9yd3lsc2h5dGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDM3MjIsImV4cCI6MjA4ODM3OTcyMn0.kLBIWCi2ydrYJhsetV2nE72QtFn0c50iNUbr5Ve1oQo" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-get-staged",
+      "name": "GET Staged da Semana",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [400, 360],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://dzhtmesadorwylshytbi.supabase.co/rest/v1/publicacoes_staged?select=id,plataforma,status,motivo_rejeicao,conteudo_gerado,created_at&created_at=gte.{{ new Date(Date.now()-7*86400000).toISOString() }}&order=created_at.desc",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey",        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6aHRtZXNhZG9yd3lsc2h5dGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDM3MjIsImV4cCI6MjA4ODM3OTcyMn0.kLBIWCi2ydrYJhsetV2nE72QtFn0c50iNUbr5Ve1oQo" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6aHRtZXNhZG9yd3lsc2h5dGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDM3MjIsImV4cCI6MjA4ODM3OTcyMn0.kLBIWCi2ydrYJhsetV2nE72QtFn0c50iNUbr5Ve1oQo" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-get-posts",
+      "name": "GET Posts da Semana",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [400, 540],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://dzhtmesadorwylshytbi.supabase.co/rest/v1/posts?select=id,plataforma,formato,conteudo_post,hashtags,impressoes,views,likes,comentarios,compartilhamentos,cliques_perfil,data_postagem&created_at=gte.{{ new Date(Date.now()-7*86400000).toISOString() }}&order=created_at.desc",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey",        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6aHRtZXNhZG9yd3lsc2h5dGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDM3MjIsImV4cCI6MjA4ODM3OTcyMn0.kLBIWCi2ydrYJhsetV2nE72QtFn0c50iNUbr5Ve1oQo" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6aHRtZXNhZG9yd3lsc2h5dGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDM3MjIsImV4cCI6MjA4ODM3OTcyMn0.kLBIWCi2ydrYJhsetV2nE72QtFn0c50iNUbr5Ve1oQo" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-preparar",
+      "name": "Preparar Análise Semanal",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [640, 360],
+      "parameters": {
+        "jsCode": "const ideias = Array.isArray($('GET Ideias da Semana').first()?.json) ? $('GET Ideias da Semana').first().json : [];\nconst staged = Array.isArray($('GET Staged da Semana').first()?.json) ? $('GET Staged da Semana').first().json : [];\nconst posts  = Array.isArray($('GET Posts da Semana').first()?.json)  ? $('GET Posts da Semana').first().json  : [];\n\nconst semanaInicio = new Date(Date.now()-7*86400000).toLocaleDateString('pt-BR');\nconst semanaFim    = new Date().toLocaleDateString('pt-BR');\n\nconst aprovadas  = ideias.filter(i => ['Aprovado','Concluído','Concluido'].includes(i.status));\nconst rejeitadas = ideias.filter(i => i.status === 'Rejeitado');\nconst andamento  = ideias.filter(i => i.status === 'Em andamento');\n\nconst stAprov = staged.filter(s => s.status === 'Aprovado');\nconst stRej   = staged.filter(s => s.status === 'Rejeitado');\n\nconst totalImp    = posts.reduce((s,p)=>s+(p.impressoes||0),0);\nconst totalLikes  = posts.reduce((s,p)=>s+(p.likes||0),0);\nconst totalViews  = posts.reduce((s,p)=>s+(p.views||0),0);\nconst totalComent = posts.reduce((s,p)=>s+(p.comentarios||0),0);\nconst totalComp   = posts.reduce((s,p)=>s+(p.compartilhamentos||0),0);\n\nconst systemPrompt = `Você é um estrategista de conteúdo B2B especializado no setor de autopeças.\nSua tarefa: analisar uma semana de operação e gerar dois documentos estratégicos.\n\n1. RESUMO_VALIDACAO: Guia para a IA que gerará posts na semana seguinte.\n   - O que o usuário aprovou vs rejeitou e por quê\n   - Padrões de estilo, tom e tema que funcionam\n   - O que evitar especificamente\n   - Instruções concretas para melhorar os próximos posts\n\n2. RESUMO_SEMANAL: Relatório executivo.\n   - Números da semana (ideias, posts, aprovações, rejeições)\n   - Performance dos posts (impressões, likes, views)\n   - Tendências e insights acionáveis\n   - Recomendações para a próxima semana\n\nEscreva em português brasileiro. Seja específico e direto.\nRetorne SOMENTE JSON válido sem markdown.`;\n\nconst userPrompt = `PERÍODO: ${semanaInicio} a ${semanaFim}\n\nIDEIAS DA SEMANA (${ideias.length} total):\n- Em andamento: ${andamento.length}\n- Aprovadas/Concluídas: ${aprovadas.length}\n- Rejeitadas: ${rejeitadas.length}\n\nAprovadas:\\n${JSON.stringify(aprovadas.map(i=>({tema:i.assunto_tema,plataforma:i.plataforma,formato:i.formato})))}\n\nRejeitadas (com motivo):\\n${JSON.stringify(rejeitadas.map(i=>({tema:i.assunto_tema,motivo:i.motivo_rejeicao||'não informado'})))}\n\nSTAGED LINKEDIN (${staged.length} total):\n- Aprovados: ${stAprov.length}\n- Rejeitados: ${stRej.length}\nRejeitados:\\n${JSON.stringify(stRej.map(s=>({motivo:s.motivo_rejeicao||'não informado',trecho:(s.conteudo_gerado||'').substring(0,100)})))}\n\nPOSTS PUBLICADOS (${posts.length}):\nImprões:${totalImp} | Views:${totalViews} | Likes:${totalLikes} | Comentários:${totalComent} | Compart:${totalComp}\nDetalhes:\\n${JSON.stringify(posts.map(p=>({plataforma:p.plataforma,formato:p.formato,impressoes:p.impressoes,likes:p.likes,views:p.views,trecho:(p.conteudo_post||'').substring(0,80)})))}\n\nRetorne EXATAMENTE:\n{\n  \"padroes_aprovados\": \"<o que funciona: temas, tons, formatos aprovados>\",\n  \"padroes_rejeitados\": \"<o que não funciona: temas, tons, motivos das rejeições>\",\n  \"analise_combinada\": \"<análise integrada com recomendações específicas para a IA na próxima semana>\",\n  \"insights\": \"<insights de performance e oportunidades>\",\n  \"resumo_semanal\": \"<relatório executivo completo com números, análise e recomendações>\",\n  \"temas_relevantes\": \"<temas e assuntos que geraram mais engajamento ou interesse>\",\n  \"sugestoes_conteudo\": \"<3 a 5 sugestões concretas de posts para a próxima semana>\"\n}`;\n\nreturn [{\n  json: {\n    semanaFim,\n    stats: { ideias: ideias.length, aprovadas: aprovadas.length, rejeitadas: rejeitadas.length, posts: posts.length, totalImp, totalLikes, totalViews },\n    claudeBody: {\n      model: 'claude-sonnet-4-6',\n      max_tokens: 4096,\n      system: systemPrompt,\n      messages: [{ role: 'user', content: userPrompt }]\n    }\n  }\n}];"
+      }
+    },
+    {
+      "id": "node-claude",
+      "name": "Claude API — Análise Semanal",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [860, 360],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-api-key",        "value": "SUA_CHAVE_ANTHROPIC_AQUI" },
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "content-type",      "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($json.claudeBody) }}",
+        "options": { "timeout": 120000 }
+      }
+    },
+    {
+      "id": "node-parsear",
+      "name": "Parsear e Separar Resumos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1080, 360],
+      "parameters": {
+        "jsCode": "const claudeResp = $input.first().json;\nconst ctx = $('Preparar Análise Semanal').first().json;\n\nconst text = claudeResp.content?.[0]?.text || '';\nif (!text) throw new Error('Claude vazio: ' + JSON.stringify(claudeResp.error));\n\nconst match = text.match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('Sem JSON na resposta: ' + text.substring(0,300));\n\nlet r;\ntry { r = JSON.parse(match[0]); }\ncatch(e) { throw new Error('Parse falhou: ' + e.message); }\n\nconst semana = ctx.semanaFim;\n\nreturn [{\n  json: {\n    // Payload p/ INSERT resumo_validacao (colunas reais da tabela)\n    validacao: {\n      semana,\n      padroes_aprovados:  r.padroes_aprovados  || '',\n      padroes_rejeitados: r.padroes_rejeitados || '',\n      analise_combinada:  r.analise_combinada  || '',\n      insights:           r.insights           || '',\n      conteudo:           r.analise_combinada  || '',  // coluna extra p/ leitura simples no fluxo 1\n    },\n    // Payload p/ INSERT resumo_semanal (colunas reais da tabela)\n    semanal: {\n      semana,\n      resumo:             r.resumo_semanal       || '',\n      temas_relevantes:   r.temas_relevantes     || '',\n      sugestoes_conteudo: r.sugestoes_conteudo   || '',\n      conteudo:           r.resumo_semanal       || '',  // coluna extra p/ leitura simples\n    },\n    stats: ctx.stats\n  }\n}];"
+      }
+    },
+    {
+      "id": "node-post-validacao",
+      "name": "POST resumo_validacao",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1300, 260],
+      "parameters": {
+        "method": "POST",
+        "url": "https://dzhtmesadorwylshytbi.supabase.co/rest/v1/resumo_validacao",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey",        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6aHRtZXNhZG9yd3lsc2h5dGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDM3MjIsImV4cCI6MjA4ODM3OTcyMn0.kLBIWCi2ydrYJhsetV2nE72QtFn0c50iNUbr5Ve1oQo" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6aHRtZXNhZG9yd3lsc2h5dGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDM3MjIsImV4cCI6MjA4ODM3OTcyMn0.kLBIWCi2ydrYJhsetV2nE72QtFn0c50iNUbr5Ve1oQo" },
+            { "name": "Content-Type",  "value": "application/json" },
+            { "name": "Prefer",        "value": "resolution=merge-duplicates,return=minimal" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($json.validacao) }}"
+      }
+    },
+    {
+      "id": "node-post-semanal",
+      "name": "POST resumo_semanal",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1300, 460],
+      "parameters": {
+        "method": "POST",
+        "url": "https://dzhtmesadorwylshytbi.supabase.co/rest/v1/resumo_semanal",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey",        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6aHRtZXNhZG9yd3lsc2h5dGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDM3MjIsImV4cCI6MjA4ODM3OTcyMn0.kLBIWCi2ydrYJhsetV2nE72QtFn0c50iNUbr5Ve1oQo" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6aHRtZXNhZG9yd3lsc2h5dGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDM3MjIsImV4cCI6MjA4ODM3OTcyMn0.kLBIWCi2ydrYJhsetV2nE72QtFn0c50iNUbr5Ve1oQo" },
+            { "name": "Content-Type",  "value": "application/json" },
+            { "name": "Prefer",        "value": "resolution=merge-duplicates,return=minimal" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($json.semanal) }}"
+      }
+    },
+    {
+      "id": "node-notif",
+      "name": "POST Notificação Semanal",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1540, 360],
+      "parameters": {
+        "method": "POST",
+        "url": "https://dzhtmesadorwylshytbi.supabase.co/rest/v1/notificacoes",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey",        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6aHRtZXNhZG9yd3lsc2h5dGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDM3MjIsImV4cCI6MjA4ODM3OTcyMn0.kLBIWCi2ydrYJhsetV2nE72QtFn0c50iNUbr5Ve1oQo" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6aHRtZXNhZG9yd3lsc2h5dGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDM3MjIsImV4cCI6MjA4ODM3OTcyMn0.kLBIWCi2ydrYJhsetV2nE72QtFn0c50iNUbr5Ve1oQo" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={\n  \"tipo\": \"projeto\",\n  \"titulo\": \"Resumo semanal gerado\",\n  \"mensagem\": \"Análise da semana concluída. {{ $json.stats.ideias }} ideias, {{ $json.stats.posts }} posts publicados, {{ $json.stats.totalImp }} impressões. O fluxo diário de segunda já usa os novos dados.\",\n  \"entidade_tipo\": \"resumo_semanal\",\n  \"lida\": false\n}"
+      }
+    }
+  ],
+  "connections": {
+    "Todo Domingo às 07:30": {
+      "main": [[
+        { "node": "GET Ideias da Semana", "type": "main", "index": 0 },
+        { "node": "GET Staged da Semana", "type": "main", "index": 0 },
+        { "node": "GET Posts da Semana",  "type": "main", "index": 0 }
+      ]]
+    },
+    "GET Ideias da Semana":     { "main": [[{ "node": "Preparar Análise Semanal",   "type": "main", "index": 0 }]] },
+    "GET Staged da Semana":     { "main": [[{ "node": "Preparar Análise Semanal",   "type": "main", "index": 0 }]] },
+    "GET Posts da Semana":      { "main": [[{ "node": "Preparar Análise Semanal",   "type": "main", "index": 0 }]] },
+    "Preparar Análise Semanal": { "main": [[{ "node": "Claude API — Análise Semanal","type": "main", "index": 0 }]] },
+    "Claude API — Análise Semanal": { "main": [[{ "node": "Parsear e Separar Resumos","type": "main", "index": 0 }]] },
+    "Parsear e Separar Resumos": {
+      "main": [[
+        { "node": "POST resumo_validacao", "type": "main", "index": 0 },
+        { "node": "POST resumo_semanal",   "type": "main", "index": 0 }
+      ]]
+    },
+    "POST resumo_validacao": { "main": [[{ "node": "POST Notificação Semanal", "type": "main", "index": 0 }]] },
+    "POST resumo_semanal":   { "main": [[{ "node": "POST Notificação Semanal", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1", "saveDataErrorExecution": "all", "saveDataSuccessExecution": "last", "saveManualExecutions": true },
+  "staticData": null,
+  "meta": { "templateCredsSetupCompleted": false },
+  "pinData": {},
+  "tags": [{ "id": "4", "name": "semanal" }, { "id": "5", "name": "resumo" }]
+}

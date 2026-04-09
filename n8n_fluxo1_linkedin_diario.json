@@ -1,0 +1,259 @@
+{
+  "name": "Fluxo 1 — Geração Diária de Ideias LinkedIn",
+  "nodes": [
+    {
+      "id": "node-trigger",
+      "name": "Todos os dias às 08:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [180, 300],
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "cronExpression", "expression": "0 8 * * *" }]
+        }
+      }
+    },
+    {
+      "id": "node-get-resumo-validacao",
+      "name": "GET Resumo Validação",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [400, 180],
+      "parameters": {
+        "method": "GET",
+        "url": "https://dzhtmesadorwylshytbi.supabase.co/rest/v1/resumo_validacao?select=analise_combinada,padroes_aprovados,padroes_rejeitados,insights,conteudo&order=created_at.desc&limit=1",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey",        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6aHRtZXNhZG9yd3lsc2h5dGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDM3MjIsImV4cCI6MjA4ODM3OTcyMn0.kLBIWCi2ydrYJhsetV2nE72QtFn0c50iNUbr5Ve1oQo" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6aHRtZXNhZG9yd3lsc2h5dGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDM3MjIsImV4cCI6MjA4ODM3OTcyMn0.kLBIWCi2ydrYJhsetV2nE72QtFn0c50iNUbr5Ve1oQo" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-get-resumo-semanal",
+      "name": "GET Resumo Semanal",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [400, 360],
+      "parameters": {
+        "method": "GET",
+        "url": "https://dzhtmesadorwylshytbi.supabase.co/rest/v1/resumo_semanal?select=resumo,temas_relevantes,sugestoes_conteudo,conteudo&order=created_at.desc&limit=1",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey",        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6aHRtZXNhZG9yd3lsc2h5dGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDM3MjIsImV4cCI6MjA4ODM3OTcyMn0.kLBIWCi2ydrYJhsetV2nE72QtFn0c50iNUbr5Ve1oQo" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6aHRtZXNhZG9yd3lsc2h5dGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDM3MjIsImV4cCI6MjA4ODM3OTcyMn0.kLBIWCi2ydrYJhsetV2nE72QtFn0c50iNUbr5Ve1oQo" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-get-ideias",
+      "name": "GET Ideias LinkedIn Em Andamento",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [400, 540],
+      "parameters": {
+        "method": "GET",
+        "url": "https://dzhtmesadorwylshytbi.supabase.co/rest/v1/ideias?select=id,assunto_tema,formato,observacoes,imagem_url,plataforma&status=eq.Em+andamento&plataforma=eq.LinkedIn&order=created_at.asc&limit=10",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey",        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6aHRtZXNhZG9yd3lsc2h5dGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDM3MjIsImV4cCI6MjA4ODM3OTcyMn0.kLBIWCi2ydrYJhsetV2nE72QtFn0c50iNUbr5Ve1oQo" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6aHRtZXNhZG9yd3lsc2h5dGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDM3MjIsImV4cCI6MjA4ODM3OTcyMn0.kLBIWCi2ydrYJhsetV2nE72QtFn0c50iNUbr5Ve1oQo" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-preparar-claude",
+      "name": "Preparar Request Claude",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [640, 360],
+      "parameters": {
+        "jsCode": "// Coleta dados dos três nós anteriores\nconst rvRaw = $('GET Resumo Validação').first()?.json;\nconst rsRaw = $('GET Resumo Semanal').first()?.json;\nconst ideiasRaw = $('GET Ideias LinkedIn Em Andamento').first()?.json;\n\nconst rvArr  = Array.isArray(rvRaw)  ? rvRaw  : [];\nconst rsArr  = Array.isArray(rsRaw)  ? rsRaw  : [];\nconst ideias = Array.isArray(ideiasRaw) ? ideiasRaw : [];\n\nif (ideias.length === 0) {\n  return [{ json: { skip: true, motivo: 'Nenhuma ideia LinkedIn Em andamento hoje.' } }];\n}\n\n// Monta contexto de validação a partir das colunas reais\nconst rv = rvArr[0] || {};\nconst rs = rsArr[0] || {};\n\nconst contextoValidacao = [\n  rv.conteudo          ? `ANÁLISE GERAL:\\n${rv.conteudo}` : null,\n  rv.analise_combinada ? `ANÁLISE COMBINADA:\\n${rv.analise_combinada}` : null,\n  rv.padroes_aprovados ? `PADRÕES APROVADOS:\\n${rv.padroes_aprovados}` : null,\n  rv.padroes_rejeitados? `PADRÕES REJEITADOS:\\n${rv.padroes_rejeitados}` : null,\n  rv.insights          ? `INSIGHTS:\\n${rv.insights}` : null,\n].filter(Boolean).join('\\n\\n') || 'Primeira semana — sem histórico de validação ainda.';\n\nconst contextoSemanal = [\n  rs.conteudo          ? `RESUMO SEMANAL:\\n${rs.conteudo}` : null,\n  rs.resumo            ? `RESUMO:\\n${rs.resumo}` : null,\n  rs.temas_relevantes  ? `TEMAS RELEVANTES:\\n${rs.temas_relevantes}` : null,\n  rs.sugestoes_conteudo? `SUGESTÕES:\\n${rs.sugestoes_conteudo}` : null,\n].filter(Boolean).join('\\n\\n') || 'Sem resumo semanal disponível ainda.';\n\n// ─── SYSTEM PROMPT ─────────────────────────────────────────\nconst systemPrompt = `Você é um especialista sênior em marketing de conteúdo B2B para o setor de autopeças e distribuição automotiva no Brasil.\n\nSua missão: criar posts profissionais para LinkedIn que estabeleçam autoridade no setor, gerem engajamento real e convertam atenção em conexões comerciais.\n\nDIRETRIZES:\n- 1ª linha: gancho forte (máx. 2 linhas antes do \"ver mais\")\n- Desenvolvimento com dado concreto, insight prático ou história real do setor\n- CTA claro e específico no final\n- Tom: direto, confiante, sem jargões vazios\n- 150 a 280 palavras\n- Máximo 4 emojis, usados estrategicamente\n- 5 a 8 hashtags relevantes (#autopeças #automotivo #gestão #distribuidora etc.)\n\nPROIBIDO:\n- \"No mundo atual\" / \"Em tempos de transformação\"\n- Começar com \"Hoje quero falar sobre\"\n- Bullet points excessivos — prefira texto fluido\n\nRETORNO: SOMENTE array JSON válido. Sem markdown. Sem texto fora do colchete.`;\n\n// ─── USER PROMPT ───────────────────────────────────────────\nconst ideiasFormatadas = ideias.map(i => ({\n  id:           i.id,\n  assunto_tema: i.assunto_tema,\n  formato:      i.formato || 'Post',\n  observacoes:  i.observacoes || null,\n  tem_imagem:   !!i.imagem_url,\n}));\n\nconst userPrompt = `CONTEXTO DE VALIDAÇÃO (o que funcionou/não funcionou nas semanas anteriores):\n───────────────────────────────────────────\n${contextoValidacao}\n\nCONTEXTO SEMANAL (performance, temas relevantes, sugestões):\n───────────────────────────────────────────\n${contextoSemanal}\n\nIDEIAS PARA GERAR HOJE (${ideias.length} ideia${ideias.length > 1 ? 's' : ''}):\n${JSON.stringify(ideiasFormatadas, null, 2)}\n\nGere um post LinkedIn completo para CADA ideia.\nSe tem_imagem: true → adapte o texto para complementar a imagem.\nSe tem_imagem: false → texto standalone, funciona sem imagem.\n\nRetorne EXATAMENTE este formato JSON:\n[\n  {\n    \"ideia_id\": <número inteiro>,\n    \"conteudo_gerado\": \"<post completo pronto para publicar>\",\n    \"hashtags\": \"#autopeças #automotivo\",\n    \"tem_imagem\": <true ou false>\n  }\n]`;\n\nreturn [{\n  json: {\n    ideias,\n    claudeBody: {\n      model: 'claude-sonnet-4-6',\n      max_tokens: 4096,\n      system: systemPrompt,\n      messages: [{ role: 'user', content: userPrompt }]\n    }\n  }\n}];"
+      }
+    },
+    {
+      "id": "node-check-skip",
+      "name": "Tem Ideias?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [860, 360],
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "id": "cond1",
+              "leftValue": "={{ $json.skip }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "notEquals" }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "node-claude-api",
+      "name": "Claude API — Gerar Posts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1080, 280],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-api-key",        "value": "SUA_CHAVE_ANTHROPIC_AQUI" },
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "content-type",      "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($json.claudeBody) }}",
+        "options": { "timeout": 120000 }
+      }
+    },
+    {
+      "id": "node-parsear",
+      "name": "Parsear Resposta → Itens",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1300, 280],
+      "parameters": {
+        "jsCode": "const claudeResp = $input.first().json;\nconst ideias     = $('Preparar Request Claude').first().json.ideias;\n\nconst text = claudeResp.content?.[0]?.text || '';\nif (!text) throw new Error('Claude retornou resposta vazia: ' + JSON.stringify(claudeResp.error || claudeResp));\n\nconst match = text.match(/\\[[\\s\\S]*\\]/);\nif (!match) throw new Error('Claude não retornou array JSON. Trecho: ' + text.substring(0, 300));\n\nlet posts;\ntry { posts = JSON.parse(match[0]); }\ncatch(e) { throw new Error('Falha parse JSON: ' + e.message); }\n\nif (!Array.isArray(posts) || posts.length === 0) throw new Error('Array vazio ou inválido.');\n\nreturn posts.map(post => {\n  const ideia = ideias.find(i => i.id === post.ideia_id || i.id === Number(post.ideia_id));\n  return {\n    json: {\n      ideia_id:        Number(post.ideia_id),\n      plataforma:      'LinkedIn',\n      conteudo_gerado: post.conteudo_gerado,\n      hashtags:        post.hashtags || null,\n      url_imagem:      ideia?.imagem_url || null,\n      url_video:       null,\n      status:          'Em andamento',\n    }\n  };\n});"
+      }
+    },
+    {
+      "id": "node-post-staged",
+      "name": "POST publicacoes_staged",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1520, 280],
+      "parameters": {
+        "method": "POST",
+        "url": "https://dzhtmesadorwylshytbi.supabase.co/rest/v1/publicacoes_staged",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey",        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6aHRtZXNhZG9yd3lsc2h5dGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDM3MjIsImV4cCI6MjA4ODM3OTcyMn0.kLBIWCi2ydrYJhsetV2nE72QtFn0c50iNUbr5Ve1oQo" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6aHRtZXNhZG9yd3lsc2h5dGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDM3MjIsImV4cCI6MjA4ODM3OTcyMn0.kLBIWCi2ydrYJhsetV2nE72QtFn0c50iNUbr5Ve1oQo" },
+            { "name": "Content-Type",  "value": "application/json" },
+            { "name": "Prefer",        "value": "return=representation" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($json) }}"
+      }
+    },
+    {
+      "id": "node-extrair-id",
+      "name": "Extrair ideia_id",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1740, 280],
+      "parameters": {
+        "jsCode": "const record = Array.isArray($json) ? $json[0] : $json;\nif (!record) throw new Error('Supabase não retornou registro.');\nreturn [{ json: { ideia_id: record.ideia_id } }];"
+      }
+    },
+    {
+      "id": "node-patch-ideia",
+      "name": "PATCH Ideia → Aprovado",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1960, 280],
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://dzhtmesadorwylshytbi.supabase.co/rest/v1/ideias?id=eq.{{ $json.ideia_id }}",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey",        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6aHRtZXNhZG9yd3lsc2h5dGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDM3MjIsImV4cCI6MjA4ODM3OTcyMn0.kLBIWCi2ydrYJhsetV2nE72QtFn0c50iNUbr5Ve1oQo" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6aHRtZXNhZG9yd3lsc2h5dGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDM3MjIsImV4cCI6MjA4ODM3OTcyMn0.kLBIWCi2ydrYJhsetV2nE72QtFn0c50iNUbr5Ve1oQo" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "{\"status\": \"Aprovado\"}"
+      }
+    },
+    {
+      "id": "node-aggregate",
+      "name": "Aguardar Todos",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [2180, 280],
+      "parameters": { "aggregate": "aggregateAllItemData" }
+    },
+    {
+      "id": "node-notif",
+      "name": "POST Notificação",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2400, 280],
+      "parameters": {
+        "method": "POST",
+        "url": "https://dzhtmesadorwylshytbi.supabase.co/rest/v1/notificacoes",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey",        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6aHRtZXNhZG9yd3lsc2h5dGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDM3MjIsImV4cCI6MjA4ODM3OTcyMn0.kLBIWCi2ydrYJhsetV2nE72QtFn0c50iNUbr5Ve1oQo" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6aHRtZXNhZG9yd3lsc2h5dGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDM3MjIsImV4cCI6MjA4ODM3OTcyMn0.kLBIWCi2ydrYJhsetV2nE72QtFn0c50iNUbr5Ve1oQo" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={\n  \"tipo\": \"projeto\",\n  \"titulo\": \"Posts LinkedIn prontos para validação\",\n  \"mensagem\": \"O fluxo n8n gerou {{ $json.data.length }} post(s) LinkedIn. Acesse Ideias › Publicações para revisar.\",\n  \"entidade_tipo\": \"publicacoes_staged\",\n  \"lida\": false\n}"
+      }
+    }
+  ],
+  "connections": {
+    "Todos os dias às 08:00": {
+      "main": [[
+        { "node": "GET Resumo Validação",             "type": "main", "index": 0 },
+        { "node": "GET Resumo Semanal",               "type": "main", "index": 0 },
+        { "node": "GET Ideias LinkedIn Em Andamento", "type": "main", "index": 0 }
+      ]]
+    },
+    "GET Resumo Validação":             { "main": [[{ "node": "Preparar Request Claude", "type": "main", "index": 0 }]] },
+    "GET Resumo Semanal":               { "main": [[{ "node": "Preparar Request Claude", "type": "main", "index": 0 }]] },
+    "GET Ideias LinkedIn Em Andamento": { "main": [[{ "node": "Preparar Request Claude", "type": "main", "index": 0 }]] },
+    "Preparar Request Claude":          { "main": [[{ "node": "Tem Ideias?",              "type": "main", "index": 0 }]] },
+    "Tem Ideias?":                      { "main": [[{ "node": "Claude API — Gerar Posts", "type": "main", "index": 0 }], []] },
+    "Claude API — Gerar Posts":         { "main": [[{ "node": "Parsear Resposta → Itens","type": "main", "index": 0 }]] },
+    "Parsear Resposta → Itens":         { "main": [[{ "node": "POST publicacoes_staged",  "type": "main", "index": 0 }]] },
+    "POST publicacoes_staged":          { "main": [[{ "node": "Extrair ideia_id",          "type": "main", "index": 0 }]] },
+    "Extrair ideia_id":                 { "main": [[{ "node": "PATCH Ideia → Aprovado",   "type": "main", "index": 0 }]] },
+    "PATCH Ideia → Aprovado":           { "main": [[{ "node": "Aguardar Todos",            "type": "main", "index": 0 }]] },
+    "Aguardar Todos":                   { "main": [[{ "node": "POST Notificação",           "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1", "saveDataErrorExecution": "all", "saveDataSuccessExecution": "last", "saveManualExecutions": true },
+  "staticData": null,
+  "meta": { "templateCredsSetupCompleted": false },
+  "pinData": {},
+  "tags": [{ "id": "1", "name": "linkedin" }, { "id": "2", "name": "diario" }]
+}
