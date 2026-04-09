@@ -21,14 +21,22 @@
       "position": [400, 180],
       "parameters": {
         "method": "GET",
-        "url": "https://dzhtmesadorwylshytbi.supabase.co/rest/v1/resumo_validacao?select=analise_combinada,padroes_aprovados,padroes_rejeitados,insights,conteudo&order=created_at.desc&limit=1",
+        "url": "https://dzhtmesadorwylshytbi.supabase.co/rest/v1/resumo_validacao",
         "authentication": "none",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "select", "value": "analise_combinada,padroes_aprovados,padroes_rejeitados,insights,conteudo" },
+            { "name": "order",  "value": "created_at.desc" },
+            { "name": "limit",  "value": "1" }
+          ]
+        },
+        "sendBody": false,
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             { "name": "apikey",        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6aHRtZXNhZG9yd3lsc2h5dGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDM3MjIsImV4cCI6MjA4ODM3OTcyMn0.kLBIWCi2ydrYJhsetV2nE72QtFn0c50iNUbr5Ve1oQo" },
-            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6aHRtZXNhZG9yd3lsc2h5dGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDM3MjIsImV4cCI6MjA4ODM3OTcyMn0.kLBIWCi2ydrYJhsetV2nE72QtFn0c50iNUbr5Ve1oQo" },
-            { "name": "Content-Type",  "value": "application/json" }
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6aHRtZXNhZG9yd3lsc2h5dGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDM3MjIsImV4cCI6MjA4ODM3OTcyMn0.kLBIWCi2ydrYJhsetV2nE72QtFn0c50iNUbr5Ve1oQo" }
           ]
         }
       }
@@ -41,34 +49,42 @@
       "position": [400, 360],
       "parameters": {
         "method": "GET",
-        "url": "https://dzhtmesadorwylshytbi.supabase.co/rest/v1/resumo_semanal?select=resumo,temas_relevantes,sugestoes_conteudo,conteudo&order=created_at.desc&limit=1",
+        "url": "https://dzhtmesadorwylshytbi.supabase.co/rest/v1/resumo_semanal",
         "authentication": "none",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "select", "value": "resumo,temas_relevantes,sugestoes_conteudo,conteudo" },
+            { "name": "order",  "value": "created_at.desc" },
+            { "name": "limit",  "value": "1" }
+          ]
+        },
+        "sendBody": false,
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             { "name": "apikey",        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6aHRtZXNhZG9yd3lsc2h5dGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDM3MjIsImV4cCI6MjA4ODM3OTcyMn0.kLBIWCi2ydrYJhsetV2nE72QtFn0c50iNUbr5Ve1oQo" },
-            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6aHRtZXNhZG9yd3lsc2h5dGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDM3MjIsImV4cCI6MjA4ODM3OTcyMn0.kLBIWCi2ydrYJhsetV2nE72QtFn0c50iNUbr5Ve1oQo" },
-            { "name": "Content-Type",  "value": "application/json" }
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6aHRtZXNhZG9yd3lsc2h5dGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDM3MjIsImV4cCI6MjA4ODM3OTcyMn0.kLBIWCi2ydrYJhsetV2nE72QtFn0c50iNUbr5Ve1oQo" }
           ]
         }
       }
     },
     {
       "id": "node-get-ideias",
-      "name": "GET Ideias LinkedIn Em Andamento",
+      "name": "GET Ideias Em Andamento",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [400, 540],
       "parameters": {
         "method": "GET",
-        "url": "https://dzhtmesadorwylshytbi.supabase.co/rest/v1/ideias?select=id,assunto_tema,formato,observacoes,imagem_url,plataforma&status=eq.Em+andamento&plataforma=eq.LinkedIn&order=created_at.asc&limit=10",
+        "url": "https://dzhtmesadorwylshytbi.supabase.co/rest/v1/ideias?select=id,assunto_tema,formato,observacoes,imagem_url,plataformas&status=eq.Em%20andamento&order=created_at.asc&limit=10",
         "authentication": "none",
+        "sendBody": false,
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             { "name": "apikey",        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6aHRtZXNhZG9yd3lsc2h5dGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDM3MjIsImV4cCI6MjA4ODM3OTcyMn0.kLBIWCi2ydrYJhsetV2nE72QtFn0c50iNUbr5Ve1oQo" },
-            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6aHRtZXNhZG9yd3lsc2h5dGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDM3MjIsImV4cCI6MjA4ODM3OTcyMn0.kLBIWCi2ydrYJhsetV2nE72QtFn0c50iNUbr5Ve1oQo" },
-            { "name": "Content-Type",  "value": "application/json" }
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6aHRtZXNhZG9yd3lsc2h5dGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDM3MjIsImV4cCI6MjA4ODM3OTcyMn0.kLBIWCi2ydrYJhsetV2nE72QtFn0c50iNUbr5Ve1oQo" }
           ]
         }
       }
@@ -80,7 +96,7 @@
       "typeVersion": 2,
       "position": [640, 360],
       "parameters": {
-        "jsCode": "// Coleta dados dos três nós anteriores\nconst rvRaw = $('GET Resumo Validação').first()?.json;\nconst rsRaw = $('GET Resumo Semanal').first()?.json;\nconst ideiasRaw = $('GET Ideias LinkedIn Em Andamento').first()?.json;\n\nconst rvArr  = Array.isArray(rvRaw)  ? rvRaw  : [];\nconst rsArr  = Array.isArray(rsRaw)  ? rsRaw  : [];\nconst ideias = Array.isArray(ideiasRaw) ? ideiasRaw : [];\n\nif (ideias.length === 0) {\n  return [{ json: { skip: true, motivo: 'Nenhuma ideia LinkedIn Em andamento hoje.' } }];\n}\n\n// Monta contexto de validação a partir das colunas reais\nconst rv = rvArr[0] || {};\nconst rs = rsArr[0] || {};\n\nconst contextoValidacao = [\n  rv.conteudo          ? `ANÁLISE GERAL:\\n${rv.conteudo}` : null,\n  rv.analise_combinada ? `ANÁLISE COMBINADA:\\n${rv.analise_combinada}` : null,\n  rv.padroes_aprovados ? `PADRÕES APROVADOS:\\n${rv.padroes_aprovados}` : null,\n  rv.padroes_rejeitados? `PADRÕES REJEITADOS:\\n${rv.padroes_rejeitados}` : null,\n  rv.insights          ? `INSIGHTS:\\n${rv.insights}` : null,\n].filter(Boolean).join('\\n\\n') || 'Primeira semana — sem histórico de validação ainda.';\n\nconst contextoSemanal = [\n  rs.conteudo          ? `RESUMO SEMANAL:\\n${rs.conteudo}` : null,\n  rs.resumo            ? `RESUMO:\\n${rs.resumo}` : null,\n  rs.temas_relevantes  ? `TEMAS RELEVANTES:\\n${rs.temas_relevantes}` : null,\n  rs.sugestoes_conteudo? `SUGESTÕES:\\n${rs.sugestoes_conteudo}` : null,\n].filter(Boolean).join('\\n\\n') || 'Sem resumo semanal disponível ainda.';\n\n// ─── SYSTEM PROMPT ─────────────────────────────────────────\nconst systemPrompt = `Você é um especialista sênior em marketing de conteúdo B2B para o setor de autopeças e distribuição automotiva no Brasil.\n\nSua missão: criar posts profissionais para LinkedIn que estabeleçam autoridade no setor, gerem engajamento real e convertam atenção em conexões comerciais.\n\nDIRETRIZES:\n- 1ª linha: gancho forte (máx. 2 linhas antes do \"ver mais\")\n- Desenvolvimento com dado concreto, insight prático ou história real do setor\n- CTA claro e específico no final\n- Tom: direto, confiante, sem jargões vazios\n- 150 a 280 palavras\n- Máximo 4 emojis, usados estrategicamente\n- 5 a 8 hashtags relevantes (#autopeças #automotivo #gestão #distribuidora etc.)\n\nPROIBIDO:\n- \"No mundo atual\" / \"Em tempos de transformação\"\n- Começar com \"Hoje quero falar sobre\"\n- Bullet points excessivos — prefira texto fluido\n\nRETORNO: SOMENTE array JSON válido. Sem markdown. Sem texto fora do colchete.`;\n\n// ─── USER PROMPT ───────────────────────────────────────────\nconst ideiasFormatadas = ideias.map(i => ({\n  id:           i.id,\n  assunto_tema: i.assunto_tema,\n  formato:      i.formato || 'Post',\n  observacoes:  i.observacoes || null,\n  tem_imagem:   !!i.imagem_url,\n}));\n\nconst userPrompt = `CONTEXTO DE VALIDAÇÃO (o que funcionou/não funcionou nas semanas anteriores):\n───────────────────────────────────────────\n${contextoValidacao}\n\nCONTEXTO SEMANAL (performance, temas relevantes, sugestões):\n───────────────────────────────────────────\n${contextoSemanal}\n\nIDEIAS PARA GERAR HOJE (${ideias.length} ideia${ideias.length > 1 ? 's' : ''}):\n${JSON.stringify(ideiasFormatadas, null, 2)}\n\nGere um post LinkedIn completo para CADA ideia.\nSe tem_imagem: true → adapte o texto para complementar a imagem.\nSe tem_imagem: false → texto standalone, funciona sem imagem.\n\nRetorne EXATAMENTE este formato JSON:\n[\n  {\n    \"ideia_id\": <número inteiro>,\n    \"conteudo_gerado\": \"<post completo pronto para publicar>\",\n    \"hashtags\": \"#autopeças #automotivo\",\n    \"tem_imagem\": <true ou false>\n  }\n]`;\n\nreturn [{\n  json: {\n    ideias,\n    claudeBody: {\n      model: 'claude-sonnet-4-6',\n      max_tokens: 4096,\n      system: systemPrompt,\n      messages: [{ role: 'user', content: userPrompt }]\n    }\n  }\n}];"
+        "jsCode": "const rvRaw     = $('GET Resumo Validação').first()?.json;\nconst rsRaw     = $('GET Resumo Semanal').first()?.json;\nconst ideiasRaw = $('GET Ideias Em Andamento').first()?.json;\n\nconst rvArr  = Array.isArray(rvRaw)  ? rvRaw  : [];\nconst rsArr  = Array.isArray(rsRaw)  ? rsRaw  : [];\nconst ideias = Array.isArray(ideiasRaw) ? ideiasRaw : [];\n\nif (ideias.length === 0) {\n  return [{ json: { skip: true, motivo: 'Nenhuma ideia Em andamento hoje.' } }];\n}\n\nconst rv = rvArr[0] || {};\nconst rs = rsArr[0] || {};\n\nconst contextoValidacao = [\n  rv.conteudo          ? `ANÁLISE GERAL:\\n${rv.conteudo}` : null,\n  rv.analise_combinada ? `ANÁLISE COMBINADA:\\n${rv.analise_combinada}` : null,\n  rv.padroes_aprovados ? `PADRÕES APROVADOS:\\n${rv.padroes_aprovados}` : null,\n  rv.padroes_rejeitados? `PADRÕES REJEITADOS:\\n${rv.padroes_rejeitados}` : null,\n  rv.insights          ? `INSIGHTS:\\n${rv.insights}` : null,\n].filter(Boolean).join('\\n\\n') || 'Primeira semana — sem histórico ainda.';\n\nconst contextoSemanal = [\n  rs.conteudo           ? `RESUMO SEMANAL:\\n${rs.conteudo}` : null,\n  rs.resumo             ? `RESUMO:\\n${rs.resumo}` : null,\n  rs.temas_relevantes   ? `TEMAS RELEVANTES:\\n${rs.temas_relevantes}` : null,\n  rs.sugestoes_conteudo ? `SUGESTÕES:\\n${rs.sugestoes_conteudo}` : null,\n].filter(Boolean).join('\\n\\n') || 'Sem resumo semanal ainda.';\n\n// ─── Diretrizes por plataforma ───────────────────────────\nconst diretrizes = {\n  LinkedIn: `- Tom: profissional, direto, confiante, B2B\n- 1ª linha: gancho forte (máx 2 linhas antes do \"ver mais\")\n- 150 a 280 palavras\n- Máx 4 emojis estratégicos\n- 5 a 8 hashtags (#autopeças #automotivo #gestão)\n- CTA claro no final\n- PROIBIDO: \"No mundo atual\", \"Em tempos de transformação\", começar com \"Hoje quero falar sobre\"`,\n\n  Instagram: `- Tom: visual, dinâmico, próximo do público\n- 1ª linha: gancho emocional ou pergunta impactante\n- 80 a 150 palavras (o texto complementa a imagem/vídeo)\n- Emojis moderados (máx 6), usados para ritmo\n- 8 a 15 hashtags variados (#autopeças #automotivo #mecânica #carros)\n- CTA simples: \"Salva esse post\", \"Marca quem precisa ver isso\"\n- Se tem_imagem: true → descreva a cena/contexto visual`,\n\n  TikTok: `- Tom: descontraído, rápido, autêntico\n- Roteiro de vídeo curto: gancho (0-3s) + desenvolvimento (3-45s) + CTA final\n- Máx 150 palavras no texto da legenda\n- 5 a 10 hashtags (#autopeças #fyp #mecânica #dica)\n- Foco em storytelling ou \"dica rápida\"\n- Se tem_imagem: false → escreva roteiro falado em tópicos`,\n\n  YouTube: `- Tom: educativo, aprofundado, autoridade\n- Título clicável + descrição SEO (150 a 300 palavras)\n- Estrutura: Introdução (gancho) → Desenvolvimento (3-5 pontos) → CTA (inscreva-se / comente)\n- 5 a 10 hashtags relevantes\n- Inclua timestamps sugeridos se o formato for tutorial/explicativo`,\n};\n\nconst getDiretrizes = (plataforma) => {\n  const key = Object.keys(diretrizes).find(k => k.toLowerCase() === (plataforma||'').toLowerCase());\n  return key ? diretrizes[key] : diretrizes.LinkedIn;\n};\n\n// ─── SYSTEM PROMPT ───────────────────────────────────────\nconst systemPrompt = `Você é um especialista sênior em marketing de conteúdo para o setor de autopeças e distribuição automotiva no Brasil.\n\nSua missão: criar conteúdo otimizado para cada plataforma — LinkedIn, Instagram, TikTok e YouTube — sempre voltado ao segmento B2B de autopeças.\n\nCada ideia pode ter uma plataforma diferente. Adapte o tom, tamanho, estrutura e hashtags conforme a plataforma indicada.\n\nRETORNO: SOMENTE array JSON válido. Sem markdown. Sem texto fora do colchete.`;\n\n// ─── USER PROMPT ─────────────────────────────────────────\nconst ideiasFormatadas = ideias.map(i => {\n  const plat = (Array.isArray(i.plataformas) ? i.plataformas[0] : i.plataforma) || 'LinkedIn';\n  return {\n    id:           i.id,\n    assunto_tema: i.assunto_tema,\n    plataforma:   plat,\n    formato:      i.formato || 'Post',\n    observacoes:  i.observacoes || null,\n    tem_imagem:   !!i.imagem_url,\n    diretrizes:   getDiretrizes(plat),\n  };\n});\n\nconst userPrompt = `CONTEXTO DE VALIDAÇÃO:\n───────────────────────────────────────────\n${contextoValidacao}\n\nCONTEXTO SEMANAL:\n───────────────────────────────────────────\n${contextoSemanal}\n\nIDEIAS PARA GERAR (${ideias.length}):\n${JSON.stringify(ideiasFormatadas, null, 2)}\n\nPara CADA ideia, gere o conteúdo respeitando a plataforma e as diretrizes indicadas no campo \"diretrizes\".\nSe tem_imagem: true → adapte o texto para complementar uma imagem/vídeo.\nSe tem_imagem: false → texto standalone.\n\nRetorne EXATAMENTE:\n[\n  {\n    \"ideia_id\": <número inteiro>,\n    \"plataforma\": \"<plataforma da ideia>\",\n    \"conteudo_gerado\": \"<conteúdo completo pronto para publicar>\",\n    \"hashtags\": \"<hashtags separadas por espaço>\",\n    \"tem_imagem\": <true ou false>\n  }\n]`;\n\nreturn [{\n  json: {\n    ideias,\n    claudeBody: {\n      model: 'claude-sonnet-4-6',\n      max_tokens: 4096,\n      system: systemPrompt,\n      messages: [{ role: 'user', content: userPrompt }]\n    }\n  }\n}];"
       }
     },
     {

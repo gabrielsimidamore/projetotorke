@@ -547,6 +547,7 @@ const IdeiasPage = () => {
     const payload = {
       assunto_tema: form.assunto_tema,
       plataforma:   form.plataforma,
+      plataformas:  [form.plataforma.toLowerCase()],
       formato:      form.formato,
       observacoes:  form.observacoes || null,
       data_uso:     form.data_uso || null,
