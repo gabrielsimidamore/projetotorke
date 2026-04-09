@@ -1,147 +1,332 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Layout from '@/components/Layout';
-import { supabase, type Post, type Ideia } from '@/lib/supabase';
+import { supabase, type Post, type Plataforma } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Loader2, Check, X, Image, ExternalLink } from 'lucide-react';
+import { Loader2, Play, Eye, Heart, MessageCircle, Share2, TrendingUp, BarChart3, MousePointerClick, Filter } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { PlatformBadge, PlatformIcon } from '@/components/PlatformBadge';
+import { MediaModal } from '@/components/VideoPlayer';
+import { PLATAFORMAS } from '@/lib/constants';
 
-const PostsPage = () => {
+/* ── helpers ── */
+const fmt = (d?: string | null) =>
+  d ? new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: '2-digit' }) : '—';
+
+const fmtNum = (n?: number | null) => {
+  if (!n) return '0';
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+  return String(n);
+};
+
+/* ── Metric pill ── */
+function MetricPill({ icon: Icon, value, label, color }: {
+  icon: React.ElementType; value?: number | null; label: string; color: string;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-0.5 flex-1">
+      <Icon className="w-3 h-3" style={{ color }} />
+      <span className="text-[11px] font-bold text-foreground">{fmtNum(value)}</span>
+      <span className="text-[9px] text-muted-foreground uppercase tracking-wide">{label}</span>
+    </div>
+  );
+}
+
+/* ── Inline metric editor ── */
+function MetricEditor({ post, onSaved }: { post: Post; onSaved: () => void }) {
   const { toast } = useToast();
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [ideias, setIdeias] = useState<Ideia[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [open, setOpen]   = useState(false);
   const [saving, setSaving] = useState(false);
-  const [nextId, setNextId] = useState('P001');
-  const [form, setForm] = useState({ id_ideia: '', assunto: '', conteudo_post: '', hashtags: '', modo_imagem: 'sem_imagem', url_imagem: '' });
+  const [vals, setVals]   = useState({
+    impressoes:       post.impressoes ?? 0,
+    views:            post.views ?? 0,
+    likes:            post.likes ?? 0,
+    comentarios:      post.comentarios ?? 0,
+    compartilhamentos:post.compartilhamentos ?? 0,
+    cliques_perfil:   post.cliques_perfil ?? 0,
+  });
 
-  const fetchData = async () => {
-    const [p, i] = await Promise.all([
-      supabase.from('posts').select('*').order('created_at', { ascending: false }),
-      supabase.from('ideias').select('*').eq('status', 'Em uso').order('created_at', { ascending: false }),
-    ]);
-    const postsData = p.data ?? [];
-    setPosts(postsData);
-    setIdeias(i.data ?? []);
-    const nums = postsData.map(p => parseInt(p.id.replace('P', ''), 10)).filter(n => !isNaN(n));
-    const next = nums.length > 0 ? Math.max(...nums) + 1 : 1;
-    setNextId(`P${String(next).padStart(3, '0')}`);
-    setLoading(false);
-  };
-  useEffect(() => { fetchData(); }, []);
-
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const save = async () => {
     setSaving(true);
-    const { error } = await supabase.from('posts').insert({ id: nextId, id_ideia: form.id_ideia ? parseInt(form.id_ideia) : null, assunto: form.assunto, conteudo_post: form.conteudo_post, hashtags: form.hashtags || null, modo_imagem: form.modo_imagem, url_imagem: form.url_imagem || null });
-    if (error) toast({ title: 'Erro', description: error.message, variant: 'destructive' });
-    else { toast({ title: 'Post criado!' }); setDialogOpen(false); setForm({ id_ideia: '', assunto: '', conteudo_post: '', hashtags: '', modo_imagem: 'sem_imagem', url_imagem: '' }); fetchData(); }
+    const { error } = await supabase.from('posts').update(vals).eq('id', post.id);
     setSaving(false);
+    if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+    toast({ title: 'Métricas salvas!' });
+    setOpen(false);
+    onSaved();
   };
 
-  const handleApprove = async (id: string) => { await supabase.from('posts').update({ status_aprovacao: 'Aprovado', data_aprovacao: new Date().toISOString().split('T')[0] }).eq('id', id); toast({ title: 'Post aprovado!' }); fetchData(); };
-  const handleReject = async (id: string) => { await supabase.from('posts').update({ status_aprovacao: 'Rejeitado' }).eq('id', id); toast({ title: 'Post rejeitado' }); fetchData(); };
+  const fields: { key: keyof typeof vals; label: string }[] = [
+    { key: 'impressoes',       label: 'Impressões'    },
+    { key: 'views',            label: 'Views'         },
+    { key: 'likes',            label: 'Curtidas'      },
+    { key: 'comentarios',      label: 'Comentários'   },
+    { key: 'compartilhamentos',label: 'Compart.'      },
+    { key: 'cliques_perfil',   label: 'Cliques Perfil'},
+  ];
 
-  const rascunhos = posts.filter(p => p.status_aprovacao === 'Rascunho');
-  const aprovados = posts.filter(p => p.status_aprovacao === 'Aprovado');
-  const rejeitados = posts.filter(p => p.status_aprovacao === 'Rejeitado');
-
-  const modoLabel = (m: string) => m === 'gerar_ia' ? 'IA' : m === 'minha_foto' ? 'Foto' : 'Sem img';
-
-  const renderCards = (items: Post[]) => {
-    if (items.length === 0) return <p className="text-sm text-muted-foreground text-center py-12">Nenhum post nesta categoria</p>;
+  if (!open) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        {items.map(post => (
-          <div key={post.id} className="bg-card rounded-lg border border-border p-4 space-y-2.5">
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <span className="text-xs font-mono text-muted-foreground">{post.id}</span>
-                <p className="text-sm font-semibold text-foreground mt-0.5">{post.assunto}</p>
-              </div>
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 shrink-0">{modoLabel(post.modo_imagem)}</span>
-            </div>
-            <p className="text-sm text-muted-foreground line-clamp-3">{post.conteudo_post}</p>
-            {post.hashtags && <p className="text-xs text-primary">{post.hashtags}</p>}
-            {post.url_imagem && (
-              <a href={post.url_imagem} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline">
-                <Image className="w-3 h-3" />Ver imagem <ExternalLink className="w-3 h-3" />
-              </a>
-            )}
-            {post.status_aprovacao === 'Rascunho' && (
-              <div className="flex gap-2 pt-1">
-                <Button size="sm" className="flex-1 gap-1" onClick={() => handleApprove(post.id)}><Check className="w-3 h-3" />Aprovar</Button>
-                <Button size="sm" variant="outline" className="flex-1 gap-1 text-destructive" onClick={() => handleReject(post.id)}><X className="w-3 h-3" />Rejeitar</Button>
-              </div>
-            )}
+      <button
+        onClick={() => setOpen(true)}
+        className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-primary transition-colors"
+      >
+        <BarChart3 className="w-3 h-3" /> Editar métricas
+      </button>
+    );
+  }
+
+  return (
+    <div className="space-y-2 p-2 rounded-lg bg-muted/40 border border-border/50">
+      <div className="grid grid-cols-2 gap-1.5">
+        {fields.map(f => (
+          <div key={f.key} className="space-y-0.5">
+            <label className="text-[9px] text-muted-foreground uppercase tracking-wide">{f.label}</label>
+            <Input
+              type="number"
+              value={vals[f.key]}
+              onChange={e => setVals(v => ({ ...v, [f.key]: Number(e.target.value) }))}
+              className="h-6 text-xs px-1.5"
+            />
           </div>
         ))}
       </div>
-    );
+      <div className="flex gap-1.5">
+        <Button size="sm" variant="ghost" className="flex-1 h-6 text-[10px]" onClick={() => setOpen(false)}>
+          Cancelar
+        </Button>
+        <Button size="sm" className="flex-1 h-6 text-[10px]" onClick={save} disabled={saving}>
+          {saving && <Loader2 className="w-2.5 h-2.5 animate-spin mr-1" />} Salvar
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/* ── Post Card ── */
+function PostCard({ post, onViewMedia, onSaved }: {
+  post: Post; onViewMedia: (url: string, type: 'video' | 'image') => void; onSaved: () => void;
+}) {
+  const hasVideo = !!post.url_video;
+  const hasImage = !!post.url_imagem;
+  const hasMedia = hasVideo || hasImage;
+
+  return (
+    <div className="glass-card rounded-xl overflow-hidden flex flex-col">
+      {/* Media thumbnail */}
+      {hasMedia && (
+        <button
+          className="relative w-full h-36 bg-black/40 overflow-hidden group shrink-0"
+          onClick={() => onViewMedia(
+            hasVideo ? post.url_video! : post.url_imagem!,
+            hasVideo ? 'video' : 'image',
+          )}
+        >
+          {hasImage && (
+            <img
+              src={post.url_imagem!}
+              alt=""
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+          )}
+          {hasVideo && !hasImage && (
+            <div className="w-full h-full flex items-center justify-center bg-muted/40">
+              <Play className="w-10 h-10 text-muted-foreground" />
+            </div>
+          )}
+          {hasVideo && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/30 transition-colors">
+              <div className="w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity border border-white/20">
+                <Play className="w-4 h-4 text-white ml-0.5" />
+              </div>
+            </div>
+          )}
+          {!hasVideo && hasImage && (
+            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <Eye className="w-6 h-6 text-white" />
+            </div>
+          )}
+        </button>
+      )}
+
+      {/* Content */}
+      <div className="p-3.5 flex flex-col gap-2.5 flex-1">
+        {/* Platform + date */}
+        <div className="flex items-center justify-between gap-2">
+          <PlatformBadge platform={post.plataforma ?? 'LinkedIn'} size="sm" />
+          <span className="text-[10px] text-muted-foreground">{fmt(post.data_postagem)}</span>
+        </div>
+
+        {/* Conteudo */}
+        <p className="text-[12px] text-foreground leading-relaxed line-clamp-3 flex-1">
+          {post.conteudo_post || post.assunto}
+        </p>
+
+        {/* Hashtags */}
+        {post.hashtags && (
+          <p className="text-[10px] text-primary/80 line-clamp-1">{post.hashtags}</p>
+        )}
+
+        {/* Formato */}
+        {post.formato && (
+          <span className="inline-flex self-start items-center px-1.5 py-0.5 rounded-md text-[9px] font-medium bg-muted/60 text-muted-foreground uppercase tracking-wide">
+            {post.formato}
+          </span>
+        )}
+
+        {/* Metrics bar */}
+        <div className="flex items-center gap-1 pt-1 border-t border-border/40">
+          <MetricPill icon={Eye}               value={post.impressoes}       label="Imp."  color="#6366f1" />
+          <MetricPill icon={Play}              value={post.views}            label="Views" color="#3b82f6" />
+          <MetricPill icon={Heart}             value={post.likes}            label="Likes" color="#ec4899" />
+          <MetricPill icon={MessageCircle}     value={post.comentarios}      label="Comt." color="#f59e0b" />
+          <MetricPill icon={Share2}            value={post.compartilhamentos} label="Comp." color="#10b981" />
+          <MetricPill icon={MousePointerClick} value={post.cliques_perfil}   label="Cliq." color="#8b5cf6" />
+        </div>
+
+        {/* Edit metrics */}
+        <MetricEditor post={post} onSaved={onSaved} />
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   Main page
+══════════════════════════════════════════════ */
+const PostsPage = () => {
+  const { toast } = useToast();
+  const [posts, setPosts]       = useState<Post[]>([]);
+  const [loading, setLoading]   = useState(true);
+  const [filterPlat, setFilterPlat] = useState<string>('all');
+  const [mediaUrl, setMediaUrl] = useState('');
+  const [mediaType, setMediaType] = useState<'video' | 'image'>('image');
+  const [mediaOpen, setMediaOpen] = useState(false);
+
+  const fetchPosts = useCallback(async () => {
+    const { data } = await supabase
+      .from('posts')
+      .select('*')
+      .order('data_postagem', { ascending: false });
+    setPosts(data ?? []);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { fetchPosts(); }, [fetchPosts]);
+
+  const viewMedia = (url: string, type: 'video' | 'image') => {
+    setMediaUrl(url); setMediaType(type); setMediaOpen(true);
   };
 
-  if (loading) return <Layout><div className="flex justify-center py-12"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div></Layout>;
+  const platformKeys = Object.keys(PLATAFORMAS) as Plataforma[];
+
+  const filtered = filterPlat === 'all'
+    ? posts
+    : posts.filter(p => p.plataforma === filterPlat);
+
+  /* ── summary metrics ── */
+  const totalImps   = posts.reduce((s, p) => s + (p.impressoes ?? 0), 0);
+  const totalLikes  = posts.reduce((s, p) => s + (p.likes ?? 0), 0);
+  const totalViews  = posts.reduce((s, p) => s + (p.views ?? 0), 0);
+  const totalShares = posts.reduce((s, p) => s + (p.compartilhamentos ?? 0), 0);
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
-      <div className="space-y-5 animate-fade-in">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-bold text-foreground">Posts LinkedIn</h1>
-            <p className="text-sm text-muted-foreground">{posts.length} posts • Próximo: <span className="font-mono text-primary">{nextId}</span></p>
-          </div>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild><Button size="sm" className="gap-1.5"><Plus className="w-3.5 h-3.5" />Novo Post</Button></DialogTrigger>
-            <DialogContent className="max-w-lg">
-              <DialogHeader><DialogTitle>Novo Post ({nextId})</DialogTitle></DialogHeader>
-              <form onSubmit={handleCreate} className="space-y-4">
-                <div className="space-y-1.5">
-                  <Label>Ideia vinculada (opcional)</Label>
-                  <Select value={form.id_ideia} onValueChange={v => setForm({ ...form, id_ideia: v })}>
-                    <SelectTrigger><SelectValue placeholder="Nenhuma" /></SelectTrigger>
-                    <SelectContent>{ideias.map(i => <SelectItem key={i.id} value={String(i.id)}>{i.assunto_tema}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5"><Label>Assunto</Label><Input value={form.assunto} onChange={e => setForm({ ...form, assunto: e.target.value })} required /></div>
-                <div className="space-y-1.5"><Label>Conteúdo</Label><Textarea value={form.conteudo_post} onChange={e => setForm({ ...form, conteudo_post: e.target.value })} required rows={5} /></div>
-                <div className="space-y-1.5"><Label>Hashtags</Label><Input value={form.hashtags} onChange={e => setForm({ ...form, hashtags: e.target.value })} placeholder="#linkedin #conteudo" /></div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label>Modo Imagem</Label>
-                    <Select value={form.modo_imagem} onValueChange={v => setForm({ ...form, modo_imagem: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="sem_imagem">Sem imagem</SelectItem>
-                        <SelectItem value="gerar_ia">Gerar com IA</SelectItem>
-                        <SelectItem value="minha_foto">Minha foto</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {form.modo_imagem !== 'sem_imagem' && (
-                    <div className="space-y-1.5"><Label>URL da Imagem</Label><Input value={form.url_imagem} onChange={e => setForm({ ...form, url_imagem: e.target.value })} /></div>
-                  )}
-                </div>
-                <Button type="submit" className="w-full" disabled={saving}>{saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Criar Post</Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+      {mediaOpen && (
+        <MediaModal url={mediaUrl} type={mediaType} onClose={() => setMediaOpen(false)} />
+      )}
+
+      <div className="space-y-5">
+        {/* Header */}
+        <div>
+          <h1 className="text-xl font-bold text-foreground">Posts</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">{posts.length} posts publicados</p>
         </div>
-        <Tabs defaultValue="rascunhos">
-          <TabsList>
-            <TabsTrigger value="rascunhos">Rascunhos ({rascunhos.length})</TabsTrigger>
-            <TabsTrigger value="aprovados">Aprovados ({aprovados.length})</TabsTrigger>
-            <TabsTrigger value="rejeitados">Rejeitados ({rejeitados.length})</TabsTrigger>
-          </TabsList>
-          <TabsContent value="rascunhos" className="mt-4">{renderCards(rascunhos)}</TabsContent>
-          <TabsContent value="aprovados" className="mt-4">{renderCards(aprovados)}</TabsContent>
-          <TabsContent value="rejeitados" className="mt-4">{renderCards(rejeitados)}</TabsContent>
-        </Tabs>
+
+        {/* Summary KPIs */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            { label: 'Impressões',    value: fmtNum(totalImps),   icon: Eye,               color: '#6366f1' },
+            { label: 'Views',         value: fmtNum(totalViews),  icon: Play,              color: '#3b82f6' },
+            { label: 'Curtidas',      value: fmtNum(totalLikes),  icon: Heart,             color: '#ec4899' },
+            { label: 'Compart.',      value: fmtNum(totalShares), icon: TrendingUp,        color: '#10b981' },
+          ].map(kpi => (
+            <div key={kpi.label} className="glass-card rounded-xl p-3.5 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                style={{ backgroundColor: kpi.color + '20' }}>
+                <kpi.icon className="w-4 h-4" style={{ color: kpi.color }} />
+              </div>
+              <div>
+                <p className="text-base font-bold text-foreground">{kpi.value}</p>
+                <p className="text-[10px] text-muted-foreground">{kpi.label}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Platform filter */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <Filter className="w-3.5 h-3.5 text-muted-foreground" />
+          <button
+            onClick={() => setFilterPlat('all')}
+            className={`px-3 py-1 rounded-full text-xs font-medium transition-all border ${
+              filterPlat === 'all'
+                ? 'bg-primary text-primary-foreground border-primary'
+                : 'border-border text-muted-foreground hover:bg-muted'
+            }`}
+          >
+            Todos ({posts.length})
+          </button>
+          {platformKeys.map(p => {
+            const count = posts.filter(x => x.plataforma === p).length;
+            if (!count) return null;
+            const cfg = PLATAFORMAS[p];
+            const active = filterPlat === p;
+            return (
+              <button
+                key={p}
+                onClick={() => setFilterPlat(p)}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all border ${
+                  active ? 'border-transparent' : 'border-border text-muted-foreground hover:bg-muted'
+                }`}
+                style={active ? { backgroundColor: cfg.bg, color: cfg.color, borderColor: cfg.color + '40' } : {}}
+              >
+                <PlatformIcon platform={p} size={12} />
+                {cfg.label} ({count})
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Grid */}
+        {filtered.length === 0 ? (
+          <div className="h-48 flex flex-col items-center justify-center border border-dashed border-border/50 rounded-xl gap-2">
+            <TrendingUp className="w-6 h-6 text-muted-foreground/40" />
+            <p className="text-sm text-muted-foreground">Nenhum post ainda</p>
+            <p className="text-xs text-muted-foreground">Conclua ideias para movê-las para cá</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 stagger">
+            {filtered.map(post => (
+              <PostCard
+                key={post.id}
+                post={post}
+                onViewMedia={viewMedia}
+                onSaved={fetchPosts}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </Layout>
   );

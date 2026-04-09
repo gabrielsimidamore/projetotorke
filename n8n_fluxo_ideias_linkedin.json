@@ -1,0 +1,402 @@
+{
+  "name": "Geração Diária de Ideias LinkedIn",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "cron-trigger",
+      "name": "Todos os dias às 08:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "resumo_validacao",
+        "returnAll": true,
+        "filters": {}
+      },
+      "id": "get-resumo-validacao",
+      "name": "Buscar Resumo Validação",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [460, 200],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-crm",
+          "name": "Supabase CRM-Clientes"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "resumo_semanal",
+        "returnAll": true,
+        "filters": {}
+      },
+      "id": "get-resumo-semanal",
+      "name": "Buscar Resumo Semanal",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [460, 380],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-crm",
+          "name": "Supabase CRM-Clientes"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "ideias",
+        "returnAll": false,
+        "limit": 20,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "status",
+              "keyValue": "Em andamento",
+              "condition": "eq"
+            },
+            {
+              "keyName": "plataforma",
+              "keyValue": "LinkedIn",
+              "condition": "eq"
+            }
+          ]
+        },
+        "sort": {
+          "keys": [
+            {
+              "keyName": "created_at",
+              "direction": "asc"
+            }
+          ]
+        }
+      },
+      "id": "get-ideias-linkedin",
+      "name": "Buscar Ideias LinkedIn Em Andamento",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [460, 560],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-crm",
+          "name": "Supabase CRM-Clientes"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combinationMode": "mergeByPosition",
+        "options": {
+          "includeUnpaired": true
+        }
+      },
+      "id": "merge-inputs",
+      "name": "Combinar Dados de Entrada",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [680, 380]
+    },
+    {
+      "parameters": {
+        "jsCode": "const resumoValidacao = $input.first()?.json?.resumo_validacao || '';\nconst resumoSemanal = $input.first()?.json?.resumo_semanal || '';\nconst ideias = $input.all().filter(i => i.json.plataforma === 'LinkedIn');\n\nreturn [{\n  json: {\n    resumo_validacao: resumoValidacao,\n    resumo_semanal: resumoSemanal,\n    ideias: ideias.map(i => ({\n      id: i.json.id,\n      assunto_tema: i.json.assunto_tema,\n      formato: i.json.formato,\n      observacoes: i.json.observacoes,\n      imagem_url: i.json.imagem_url,\n      tem_imagem: !!i.json.imagem_url,\n    }))\n  }\n}];"
+      },
+      "id": "prepare-context",
+      "name": "Preparar Contexto para IA",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 380]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "Você é um especialista em marketing de conteúdo B2B para o setor automotivo/autopeças. Crie posts profissionais para LinkedIn que gerem engajamento, autoridade e conexões comerciais. Escreva em português brasileiro.\n\nDiretrizes:\n- Tom: profissional, direto, com valor real\n- Estrutura: gancho forte na primeira linha, desenvolvimento com insight ou dado, CTA claro\n- Tamanho: 150-300 palavras\n- Inclua emojis estratégicos (máximo 3-5)\n- Hashtags: 5-8 relevantes ao setor\n- Se houver imagem: adapte o texto para complementar a imagem\n- Se não houver imagem: crie uma descrição da imagem ideal para gerar com IA\n\nRetorne SOMENTE um array JSON com os posts gerados, sem markdown:"
+            },
+            {
+              "role": "user",
+              "content": "=Contexto do negócio:\n\n{{ $json.resumo_validacao }}\n\n{{ $json.resumo_semanal }}\n\nIdeias para processar:\n{{ JSON.stringify($json.ideias, null, 2) }}\n\nGere um post LinkedIn completo para CADA ideia. Retorne um array JSON no formato:\n[\n  {\n    \"ideia_id\": <número do id>,\n    \"conteudo_gerado\": \"<texto completo do post>\",\n    \"hashtags\": \"<hashtags separadas por espaço>\",\n    \"tem_imagem\": <true/false>,\n    \"descricao_imagem\": \"<descrição para geração de imagem via IA, se não tiver imagem>\"\n  }\n]"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 4000
+        }
+      },
+      "id": "openai-gerar-posts",
+      "name": "OpenAI — Gerar Posts LinkedIn",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1.4,
+      "position": [1120, 380],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-key",
+          "name": "OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const content = $input.first().json.message.content;\n\n// Extrair JSON da resposta\nconst jsonMatch = content.match(/\\[([\\s\\S]*)\\]/);\nif (!jsonMatch) {\n  throw new Error('IA não retornou JSON válido: ' + content);\n}\n\nlet posts;\ntry {\n  posts = JSON.parse('[' + jsonMatch[1] + ']');\n} catch (e) {\n  throw new Error('Erro ao parsear JSON: ' + e.message);\n}\n\nreturn posts.map(post => ({ json: post }));"
+      },
+      "id": "parse-ai-response",
+      "name": "Parsear Resposta da IA",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 380]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.tem_imagem }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "check-has-image",
+      "name": "Tem Imagem?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1560, 380]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "ideias",
+        "returnAll": false,
+        "limit": 1,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $json.ideia_id }}",
+              "condition": "eq"
+            }
+          ]
+        }
+      },
+      "id": "get-ideia-image-url",
+      "name": "Buscar URL Imagem da Ideia",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1780, 260],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-crm",
+          "name": "Supabase CRM-Clientes"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "dall-e-3",
+        "prompt": "=Professional LinkedIn post image for automotive parts business. {{ $json.descricao_imagem }}. Style: clean, corporate, modern. No text overlay. Aspect ratio 1:1.",
+        "size": "1024x1024",
+        "quality": "standard",
+        "responseFormat": "url"
+      },
+      "id": "dall-e-gerar-imagem",
+      "name": "DALL-E — Gerar Imagem",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1.4,
+      "position": [1780, 480],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-key",
+          "name": "OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Combinar dados: post gerado + url_imagem (da ideia ou gerada pelo DALL-E)\nconst post = $input.first().json;\nconst imagemUrl = post.tem_imagem\n  ? $('Buscar URL Imagem da Ideia').first()?.json?.imagem_url || null\n  : $('DALL-E — Gerar Imagem').first()?.json?.data?.[0]?.url || null;\n\nreturn [{\n  json: {\n    ideia_id:        post.ideia_id,\n    plataforma:      'LinkedIn',\n    conteudo_gerado: post.conteudo_gerado,\n    hashtags:        post.hashtags,\n    url_imagem:      imagemUrl,\n    status:          'Em andamento',\n  }\n}];"
+      },
+      "id": "merge-post-imagem",
+      "name": "Montar Publicação Staged",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2000, 380]
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "tableId": "publicacoes_staged",
+        "dataToSend": "defineBelow",
+        "fieldsUi": {
+          "fieldValues": [
+            { "fieldId": "ideia_id",        "fieldValue": "={{ $json.ideia_id }}"        },
+            { "fieldId": "plataforma",      "fieldValue": "={{ $json.plataforma }}"      },
+            { "fieldId": "conteudo_gerado", "fieldValue": "={{ $json.conteudo_gerado }}" },
+            { "fieldId": "hashtags",        "fieldValue": "={{ $json.hashtags }}"        },
+            { "fieldId": "url_imagem",      "fieldValue": "={{ $json.url_imagem }}"      },
+            { "fieldId": "status",          "fieldValue": "={{ $json.status }}"          }
+          ]
+        }
+      },
+      "id": "insert-publicacao-staged",
+      "name": "Inserir em publicacoes_staged",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [2220, 380],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-crm",
+          "name": "Supabase CRM-Clientes"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "ideias",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $json.ideia_id }}",
+              "condition": "eq"
+            }
+          ]
+        },
+        "dataToSend": "defineBelow",
+        "fieldsUi": {
+          "fieldValues": [
+            { "fieldId": "status", "fieldValue": "Aprovado" }
+          ]
+        }
+      },
+      "id": "update-ideia-aprovado",
+      "name": "Atualizar Ideia → Aprovado",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [2440, 380],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-crm",
+          "name": "Supabase CRM-Clientes"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "tableId": "notificacoes",
+        "dataToSend": "defineBelow",
+        "fieldsUi": {
+          "fieldValues": [
+            { "fieldId": "tipo",          "fieldValue": "projeto"           },
+            { "fieldId": "titulo",        "fieldValue": "Posts LinkedIn prontos para validação" },
+            { "fieldId": "mensagem",      "fieldValue": "=O n8n gerou {{ $input.all().length }} post(s) LinkedIn. Acesse Ideias > Publicações para revisar e aprovar." },
+            { "fieldId": "entidade_tipo", "fieldValue": "publicacoes_staged" },
+            { "fieldId": "lida",          "fieldValue": "false"             }
+          ]
+        }
+      },
+      "id": "criar-notificacao",
+      "name": "Criar Notificação",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [2660, 380],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-crm",
+          "name": "Supabase CRM-Clientes"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Todos os dias às 08:00": {
+      "main": [
+        [
+          { "node": "Buscar Resumo Validação",            "type": "main", "index": 0 },
+          { "node": "Buscar Resumo Semanal",              "type": "main", "index": 0 },
+          { "node": "Buscar Ideias LinkedIn Em Andamento","type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Buscar Resumo Validação": {
+      "main": [[ { "node": "Combinar Dados de Entrada", "type": "main", "index": 0 } ]]
+    },
+    "Buscar Resumo Semanal": {
+      "main": [[ { "node": "Combinar Dados de Entrada", "type": "main", "index": 1 } ]]
+    },
+    "Buscar Ideias LinkedIn Em Andamento": {
+      "main": [[ { "node": "Combinar Dados de Entrada", "type": "main", "index": 2 } ]]
+    },
+    "Combinar Dados de Entrada": {
+      "main": [[ { "node": "Preparar Contexto para IA", "type": "main", "index": 0 } ]]
+    },
+    "Preparar Contexto para IA": {
+      "main": [[ { "node": "OpenAI — Gerar Posts LinkedIn", "type": "main", "index": 0 } ]]
+    },
+    "OpenAI — Gerar Posts LinkedIn": {
+      "main": [[ { "node": "Parsear Resposta da IA", "type": "main", "index": 0 } ]]
+    },
+    "Parsear Resposta da IA": {
+      "main": [[ { "node": "Tem Imagem?", "type": "main", "index": 0 } ]]
+    },
+    "Tem Imagem?": {
+      "main": [
+        [ { "node": "Buscar URL Imagem da Ideia", "type": "main", "index": 0 } ],
+        [ { "node": "DALL-E — Gerar Imagem",      "type": "main", "index": 0 } ]
+      ]
+    },
+    "Buscar URL Imagem da Ideia": {
+      "main": [[ { "node": "Montar Publicação Staged", "type": "main", "index": 0 } ]]
+    },
+    "DALL-E — Gerar Imagem": {
+      "main": [[ { "node": "Montar Publicação Staged", "type": "main", "index": 0 } ]]
+    },
+    "Montar Publicação Staged": {
+      "main": [[ { "node": "Inserir em publicacoes_staged", "type": "main", "index": 0 } ]]
+    },
+    "Inserir em publicacoes_staged": {
+      "main": [[ { "node": "Atualizar Ideia → Aprovado", "type": "main", "index": 0 } ]]
+    },
+    "Atualizar Ideia → Aprovado": {
+      "main": [[ { "node": "Criar Notificação", "type": "main", "index": 0 } ]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "last",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "auto-peak-flow"
+  },
+  "pinData": {},
+  "versionId": "1.0.0",
+  "triggerCount": 1,
+  "tags": [
+    { "createdAt": "2026-04-09", "updatedAt": "2026-04-09", "id": "1", "name": "linkedin" },
+    { "createdAt": "2026-04-09", "updatedAt": "2026-04-09", "id": "2", "name": "conteudo" }
+  ]
+}

@@ -5,6 +5,11 @@ const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// ─── Plataformas ─────────────────────────────────────────────
+export type Plataforma = 'Instagram' | 'TikTok' | 'YouTube' | 'LinkedIn';
+export type FormatoConteudo = 'Reels' | 'Short' | 'Story' | 'Carrossel' | 'Post' | 'Vídeo Longo';
+
+// ─── Clientes ────────────────────────────────────────────────
 export type Cliente = {
   id: string; nome: string; empresa: string; telefone: string; email: string;
   segmento: string; cargo?: string; cidade?: string; estado?: string;
@@ -12,6 +17,7 @@ export type Cliente = {
   projeto_id?: string | null;
 };
 
+// ─── Interações ───────────────────────────────────────────────
 export type Interacao = {
   id: string; cliente_id: string;
   canal: 'email' | 'whatsapp' | 'linkedin' | 'ligacao' | 'presencial' | 'instagram';
@@ -19,31 +25,77 @@ export type Interacao = {
   data_interacao: string; clientes?: { nome: string; empresa: string };
 };
 
-export type IdeiaConteudo = {
-  id: string; titulo: string; descricao: string;
-  status: 'pendente' | 'aprovado' | 'rejeitado' | 'producao' | 'concluido';
-  feedback_gestor: string | null; created_at: string;
-};
-
-export type Conteudo = {
-  id: string; ideia_id: string; url_video: string; data_publicacao: string;
-  status: 'ativo' | 'arquivado'; ideias_conteudo?: IdeiaConteudo;
-};
+// ─── Ideias ───────────────────────────────────────────────────
+export type IdeiaStatus = 'Em andamento' | 'Aprovado' | 'Rejeitado' | 'Concluído';
 
 export type Ideia = {
-  id: number; data_cadastro: string; assunto_tema: string; formato: string;
-  observacoes: string | null; status: 'Pendente' | 'Em andamento' | 'Aprovado' | 'Rejeitado';
-  data_uso: string | null; plataforma?: string; data_postagem?: string | null; created_at: string;
+  id: number;
+  created_at: string;
+  data_cadastro?: string;
+  assunto_tema: string;
+  formato: FormatoConteudo | string;
+  observacoes: string | null;         // notas do usuário para a IA
+  roteiro: string | null;             // roteiro gerado pelo n8n (editável)
+  url_video: string | null;           // vídeo gravado enviado pelo usuário
+  imagem_url: string | null;           // imagem enviada pelo usuário (LinkedIn)
+  motivo_rejeicao: string | null;
+  status: IdeiaStatus;
+  data_uso: string | null;
+  plataforma: Plataforma | string;
+  data_postagem: string | null;       // data marcada como Concluído
 };
 
+// ─── Publicações Staged ───────────────────────────────────────
+export type PublicacaoStagedStatus = 'Em andamento' | 'Aprovado' | 'Rejeitado';
+
+export type PublicacaoStaged = {
+  id: string;
+  ideia_id: number | null;
+  plataforma: Plataforma | string;
+  conteudo_gerado: string | null;
+  hashtags: string | null;
+  url_imagem: string | null;
+  url_video: string | null;
+  roteiro: string | null;
+  status: PublicacaoStagedStatus;
+  motivo_rejeicao: string | null;
+  projeto_id: string | null;
+  created_at: string;
+  updated_at: string;
+  ideias?: { assunto_tema: string; plataforma: string } | null;
+  projetos?: { nome: string } | null;
+};
+
+// ─── Posts ────────────────────────────────────────────────────
 export type Post = {
-  id: string; id_ideia: number | null; assunto: string; conteudo_post: string;
-  hashtags: string | null; status_aprovacao: 'Rascunho' | 'Aprovado' | 'Rejeitado';
-  data_aprovacao: string | null; observacao: string | null;
+  id: string;
+  ideia_id: number | null;
+  id_ideia?: number | null;
+  assunto: string;
+  conteudo_post: string;
+  hashtags: string | null;
+  status_aprovacao: 'Rascunho' | 'Aprovado' | 'Rejeitado';
+  data_aprovacao: string | null;
+  data_postagem: string | null;
   modo_imagem: 'sem_imagem' | 'gerar_ia' | 'minha_foto';
-  url_imagem: string | null; linkedin_post_id: string | null; created_at: string;
+  url_imagem: string | null;
+  url_video: string | null;
+  roteiro: string | null;
+  plataforma: Plataforma | string | null;
+  formato: FormatoConteudo | string | null;
+  projeto_id: string | null;
+  linkedin_post_id: string | null;
+  // métricas individuais
+  impressoes: number;
+  views: number;
+  likes: number;
+  comentarios: number;
+  compartilhamentos: number;
+  cliques_perfil: number;
+  created_at: string;
 };
 
+// ─── Métricas (gerais do CRM) ─────────────────────────────────
 export type Metrica = {
   id: number; id_post: string | null; assunto: string | null;
   data_post: string | null; horario: string | null; formato: string | null;
@@ -59,6 +111,7 @@ export type TopConteudo = {
   comentarios: number | null; padroes_identificados: string | null; created_at: string;
 };
 
+// ─── Recomendações ───────────────────────────────────────────
 export type Recomendacao = {
   id: string; assunto_sugerido: string; formato_sugerido: string;
   justificativa_ia: string | null; horario_sugerido: string | null;
@@ -66,6 +119,7 @@ export type Recomendacao = {
   motivo_rejeicao: string | null; created_at: string;
 };
 
+// ─── Pedidos / Vendas ─────────────────────────────────────────
 export type Pedido = {
   id: string; codigo_pedido: string | null; cliente_id: string; produto_id: string | null;
   data: string | null; qtd: number | null; data_emissao: string | null;
@@ -76,6 +130,7 @@ export type Pedido = {
   produtos?: { codigo: string; descricao: string | null; valor_unit: number | null } | null;
 };
 
+// ─── Projetos ────────────────────────────────────────────────
 export type Projeto = {
   id: string; nome: string; cliente_id: string | null;
   valor_estimado: number | null; data_fechamento_prevista: string | null;
@@ -87,6 +142,7 @@ export type Projeto = {
   observacoes?: string | null;
 };
 
+// ─── Tarefas ─────────────────────────────────────────────────
 export type Tarefa = {
   id: string; projeto_id: string; titulo: string; descricao: string | null;
   responsavel: string | null;
@@ -95,6 +151,7 @@ export type Tarefa = {
   data_prevista: string | null; created_at: string; updated_at: string;
 };
 
+// ─── Notificações ─────────────────────────────────────────────
 export type Notificacao = {
   id: string; tipo: 'tarefa' | 'projeto' | 'mencao';
   titulo: string; mensagem: string | null;
@@ -102,22 +159,26 @@ export type Notificacao = {
   responsavel: string | null; lida: boolean; created_at: string;
 };
 
+// ─── Custos de Projeto ───────────────────────────────────────
 export type CustoProjeto = {
   id: string; projeto_id: string; descricao: string; valor: number;
   categoria: string; data: string; tipo: 'despesa' | 'receita';
   observacoes: string | null; created_at: string;
 };
 
+// ─── Métricas de Projeto ─────────────────────────────────────
 export type ProjetoMetrica = {
   id: string; projeto_id: string; nome: string; valor: number;
   unidade: string; meta: number | null; data: string; created_at: string;
 };
 
+// ─── Ideias de Projeto ───────────────────────────────────────
 export type ProjetoIdeia = {
   id: string; projeto_id: string; titulo: string; descricao: string | null;
   status: 'pendente' | 'em_andamento' | 'aprovado' | 'descartado'; created_at: string;
 };
 
+// ─── Dashboard View ──────────────────────────────────────────
 export type VwDashboard = {
   post_id: string; assunto: string; status_aprovacao: string; modo_imagem: string;
   post_criado_em: string; ideia_original: string | null; formato_ideia: string | null;
@@ -127,11 +188,13 @@ export type VwDashboard = {
   data_post: string | null; horario: string | null; padroes_identificados: string | null;
 };
 
+// ─── Atividades ──────────────────────────────────────────────
 export type Atividade = {
   id: string; entidade_tipo: string; entidade_id: string; acao: string;
   descricao: string | null; usuario_email: string | null; created_at: string;
 };
 
+// ─── Reuniões ────────────────────────────────────────────────
 export type Reuniao = {
   id: string; titulo: string; data: string; horario_inicio: string;
   horario_fim: string | null; local: string | null;
@@ -140,4 +203,16 @@ export type Reuniao = {
   participantes: string[] | null; responsavel: string | null;
   status: 'agendada' | 'realizada' | 'cancelada' | 'adiada';
   created_at: string; updated_at: string;
+};
+
+// ─── Conteúdo (legado) ────────────────────────────────────────
+export type IdeiaConteudo = {
+  id: string; titulo: string; descricao: string;
+  status: 'pendente' | 'aprovado' | 'rejeitado' | 'producao' | 'concluido';
+  feedback_gestor: string | null; created_at: string;
+};
+
+export type Conteudo = {
+  id: string; ideia_id: string; url_video: string; data_publicacao: string;
+  status: 'ativo' | 'arquivado'; ideias_conteudo?: IdeiaConteudo;
 };

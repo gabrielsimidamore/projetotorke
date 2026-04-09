@@ -15,39 +15,43 @@ const Layout = ({ children }: LayoutProps) => {
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
+
         <div className="flex-1 flex flex-col min-w-0">
-          <header
-            className="h-12 flex items-center justify-between px-4 shrink-0 border-b transition-colors duration-300"
-            style={project
-              ? { borderBottomColor: project.color, backgroundColor: project.color + '18' }
-              : undefined}
-          >
-            <div className="flex items-center gap-2">
-              <SidebarTrigger className="text-muted-foreground hover:text-foreground transition-colors" />
+          {/* Top bar */}
+          <header className="h-11 flex items-center justify-between px-4 shrink-0 border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-30">
+            <div className="flex items-center gap-3">
+              <SidebarTrigger className="text-muted-foreground hover:text-foreground transition-colors -ml-1" />
               {project && (
-                <span className="text-xs font-semibold" style={{ color: project.color }}>
-                  {project.name}
-                </span>
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: project.color }} />
+                  <span className="text-xs font-medium" style={{ color: project.color }}>
+                    {project.name}
+                  </span>
+                </div>
               )}
             </div>
+
             <div className="flex items-center gap-2">
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                className="h-8 text-muted-foreground text-xs gap-2 hidden sm:flex"
+                className="h-7 text-muted-foreground text-xs gap-2 hidden sm:flex border border-border/60 hover:bg-accent rounded-lg"
                 onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
               >
-                <Search className="w-3.5 h-3.5" />
+                <Search className="w-3 h-3" />
                 <span>Buscar...</span>
-                <kbd className="text-[10px] px-1.5 py-0.5 rounded bg-muted">⌘K</kbd>
+                <kbd className="text-[10px] px-1 py-0.5 rounded bg-muted font-mono">⌘K</kbd>
               </Button>
               <Notifications />
             </div>
           </header>
-          <main className="flex-1 overflow-auto p-6">
+
+          {/* Main content */}
+          <main className="flex-1 overflow-auto p-5 lg:p-6">
             {children}
           </main>
         </div>
+
         <GlobalSearch />
       </div>
     </SidebarProvider>
