@@ -767,16 +767,40 @@ const IdeiasPage = () => {
               )}
 
               {/* Roteiro */}
-              {stagedDetail.roteiro && (
-                <div className="space-y-2">
-                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-                    <Layers className="w-3.5 h-3.5" /> Roteiro
-                  </Label>
-                  <div className="bg-muted/40 rounded-lg p-3.5 text-[13px] text-foreground leading-relaxed whitespace-pre-wrap border border-border/50">
-                    {stagedDetail.roteiro}
+              {stagedDetail.roteiro && (() => {
+                // Remove markdown code fences e tenta parsear JSON
+                const raw = stagedDetail.roteiro.replace(/^```[\w]*\n?/m, '').replace(/```$/m, '').trim();
+                let parsed: Record<string, string> | null = null;
+                try { parsed = JSON.parse(raw); } catch {}
+
+                return (
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                      <Layers className="w-3.5 h-3.5" /> Roteiro
+                    </Label>
+                    {parsed ? (
+                      <div className="space-y-2.5">
+                        {Object.entries(parsed).map(([key, val]) => (
+                          <div key={key} className="rounded-lg border border-border/50 overflow-hidden">
+                            <div className="px-3 py-1.5 bg-muted/60 border-b border-border/50">
+                              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                                {key.replace(/_/g, ' ')}
+                              </span>
+                            </div>
+                            <div className="px-3 py-2.5 text-[13px] text-foreground leading-relaxed whitespace-pre-wrap">
+                              {typeof val === 'string' ? val : JSON.stringify(val, null, 2)}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="bg-muted/40 rounded-lg p-3.5 text-[13px] text-foreground leading-relaxed whitespace-pre-wrap border border-border/50">
+                        {raw}
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Mídia */}
               {stagedDetail.url_imagem && (
