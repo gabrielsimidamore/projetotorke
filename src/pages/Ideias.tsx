@@ -246,10 +246,15 @@ function StagedCard({ item, onApprove, onReject, onConclude, onViewMedia, onOpen
       style={{ borderLeft: `3px solid ${borderColor}` }}
       onClick={() => onOpenDetail(item)}
     >
-      <div className="flex items-center gap-2">
-        <PlatformBadge platform={item.plataforma} size="sm" />
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5">
+          <PlatformIcon platform={item.plataforma as Plataforma} size={14} />
+          <span className="text-[12px] font-semibold" style={{ color: PLATAFORMAS[item.plataforma as Plataforma]?.color ?? '#6366f1' }}>
+            {PLATAFORMAS[item.plataforma as Plataforma]?.label ?? item.plataforma}
+          </span>
+        </div>
         {statusCfg && (
-          <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-medium"
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-semibold"
             style={{ backgroundColor: statusCfg.bg, color: statusCfg.color }}>
             {item.status}
           </span>
@@ -695,8 +700,13 @@ const IdeiasPage = () => {
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
               <div className="flex items-center gap-2.5">
-                <PlatformBadge platform={stagedDetail.plataforma} size="sm" />
-                <span className="text-sm font-semibold text-foreground">Detalhes da Publicação</span>
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg"
+                  style={{ backgroundColor: PLATAFORMAS[stagedDetail.plataforma as Plataforma]?.bg ?? '#6366f120' }}>
+                  <PlatformIcon platform={stagedDetail.plataforma as Plataforma} size={15} />
+                  <span className="text-[13px] font-bold" style={{ color: PLATAFORMAS[stagedDetail.plataforma as Plataforma]?.color ?? '#6366f1' }}>
+                    {PLATAFORMAS[stagedDetail.plataforma as Plataforma]?.label ?? stagedDetail.plataforma}
+                  </span>
+                </div>
               </div>
               <button
                 onClick={() => setStagedDetailOpen(false)}
