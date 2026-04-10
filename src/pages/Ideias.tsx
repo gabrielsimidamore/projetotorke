@@ -27,6 +27,12 @@ const fmt = (d?: string | null) =>
 
 const platformKeys = Object.keys(PLATAFORMAS) as Plataforma[];
 
+// lookup case-insensitive: "instagram" → "Instagram"
+const normPlat = (p: string): Plataforma => {
+  const found = platformKeys.find(k => k.toLowerCase() === (p ?? '').toLowerCase());
+  return (found ?? p) as Plataforma;
+};
+
 /* ══════════════════════════════════════════════
    IdeiaCard
 ══════════════════════════════════════════════ */
@@ -236,7 +242,8 @@ interface StagedCardProps {
 }
 
 function StagedCard({ item, onApprove, onReject, onConclude, onViewMedia, onOpenDetail }: StagedCardProps) {
-  const cfg = PLATAFORMAS[item.plataforma as Plataforma];
+  const plat    = normPlat(item.plataforma);
+  const cfg     = PLATAFORMAS[plat];
   const borderColor = cfg?.color ?? '#6366f1';
   const statusCfg = STAGED_STATUS_CONFIG[item.status as keyof typeof STAGED_STATUS_CONFIG];
 
@@ -247,10 +254,10 @@ function StagedCard({ item, onApprove, onReject, onConclude, onViewMedia, onOpen
       onClick={() => onOpenDetail(item)}
     >
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5">
-          <PlatformIcon platform={item.plataforma as Plataforma} size={14} />
-          <span className="text-[12px] font-semibold" style={{ color: PLATAFORMAS[item.plataforma as Plataforma]?.color ?? '#6366f1' }}>
-            {PLATAFORMAS[item.plataforma as Plataforma]?.label ?? item.plataforma}
+        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md" style={{ backgroundColor: cfg?.bg ?? 'rgba(99,102,241,0.1)' }}>
+          <PlatformIcon platform={plat} size={13} />
+          <span className="text-[12px] font-bold" style={{ color: cfg?.color ?? '#6366f1' }}>
+            {cfg?.label ?? item.plataforma}
           </span>
         </div>
         {statusCfg && (
@@ -700,13 +707,19 @@ const IdeiasPage = () => {
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg"
-                  style={{ backgroundColor: PLATAFORMAS[stagedDetail.plataforma as Plataforma]?.bg ?? '#6366f120' }}>
-                  <PlatformIcon platform={stagedDetail.plataforma as Plataforma} size={15} />
-                  <span className="text-[13px] font-bold" style={{ color: PLATAFORMAS[stagedDetail.plataforma as Plataforma]?.color ?? '#6366f1' }}>
-                    {PLATAFORMAS[stagedDetail.plataforma as Plataforma]?.label ?? stagedDetail.plataforma}
-                  </span>
-                </div>
+                {(() => {
+                  const p = normPlat(stagedDetail.plataforma);
+                  const c = PLATAFORMAS[p];
+                  return (
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg"
+                      style={{ backgroundColor: c?.bg ?? 'rgba(99,102,241,0.12)' }}>
+                      <PlatformIcon platform={p} size={15} />
+                      <span className="text-[13px] font-bold" style={{ color: c?.color ?? '#6366f1' }}>
+                        {c?.label ?? stagedDetail.plataforma}
+                      </span>
+                    </div>
+                  );
+                })()}
               </div>
               <button
                 onClick={() => setStagedDetailOpen(false)}
