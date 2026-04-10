@@ -60,6 +60,7 @@ export type PublicacaoStaged = {
   status: PublicacaoStagedStatus;
   motivo_rejeicao: string | null;
   projeto_id: string | null;
+  data_postagem: string | null;
   created_at: string;
   updated_at: string;
   ideias?: { assunto_tema: string; plataforma: string } | null;

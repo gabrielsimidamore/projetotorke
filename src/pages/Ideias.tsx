@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Plus, Loader2, FileText, Upload, Check, X, AlertCircle,
   Play, MoreHorizontal, Eye, Pencil, Trash2, Video, Image as ImageIcon,
+  Calendar, Hash, ChevronRight, AlignLeft, Layers,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { PlatformBadge, PlatformIcon } from '@/components/PlatformBadge';
@@ -227,21 +228,23 @@ function IdeiaCard({
 ══════════════════════════════════════════════ */
 interface StagedCardProps {
   item: PublicacaoStaged;
-  onApprove: (item: PublicacaoStaged) => void;
-  onReject: (item: PublicacaoStaged) => void;
-  onConclude: (item: PublicacaoStaged) => void;
+  onApprove: (i: PublicacaoStaged) => void;
+  onReject: (i: PublicacaoStaged) => void;
+  onConclude: (i: PublicacaoStaged) => void;
   onViewMedia: (url: string, type: 'video' | 'image') => void;
+  onOpenDetail: (i: PublicacaoStaged) => void;
 }
 
-function StagedCard({ item, onApprove, onReject, onConclude, onViewMedia }: StagedCardProps) {
+function StagedCard({ item, onApprove, onReject, onConclude, onViewMedia, onOpenDetail }: StagedCardProps) {
   const cfg = PLATAFORMAS[item.plataforma as Plataforma];
   const borderColor = cfg?.color ?? '#6366f1';
   const statusCfg = STAGED_STATUS_CONFIG[item.status as keyof typeof STAGED_STATUS_CONFIG];
 
   return (
     <div
-      className="glass-card rounded-xl p-3.5 space-y-2.5"
+      className="glass-card rounded-xl p-3.5 space-y-2.5 cursor-pointer"
       style={{ borderLeft: `3px solid ${borderColor}` }}
+      onClick={() => onOpenDetail(item)}
     >
       <div className="flex items-center gap-2">
         <PlatformBadge platform={item.plataforma} size="sm" />
@@ -291,7 +294,7 @@ function StagedCard({ item, onApprove, onReject, onConclude, onViewMedia }: Stag
 
       <p className="text-[10px] text-muted-foreground">{fmt(item.created_at)}</p>
 
-      <div className="flex gap-1.5 pt-0.5">
+      <div className="flex gap-1.5 pt-0.5" onClick={e => e.stopPropagation()}>
         {item.status === 'Em andamento' && (
           <>
             <Button size="sm"
@@ -332,6 +335,12 @@ function StagedCard({ item, onApprove, onReject, onConclude, onViewMedia }: Stag
             <Check className="w-3 h-3" /> Reativar
           </Button>
         )}
+        <Button size="sm" variant="ghost"
+          className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground ml-auto"
+          onClick={() => onOpenDetail(item)}
+        >
+          <ChevronRight className="w-3.5 h-3.5" />
+        </Button>
       </div>
     </div>
   );
@@ -366,6 +375,34 @@ const IdeiasPage = () => {
   const [uploadingId, setUploadingId] = useState<number | null>(null);
   const [uploadTarget, setUploadTarget] = useState<Ideia | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  /* staged detail drawer */
+  const [stagedDetail, setStagedDetail]       = useState<PublicacaoStaged | null>(null);
+  const [stagedDetailOpen, setStagedDetailOpen] = useState(false);
+  const [stagedDate, setStagedDate]             = useState('');
+  const [savingDate, setSavingDate]             = useState(false);
+
+  const openStagedDetail = (item: PublicacaoStaged) => {
+    setStagedDetail(item);
+    setStagedDate(item.data_postagem || '');
+    setStagedDetailOpen(true);
+  };
+
+  const savePostDate = async () => {
+    if (!stagedDetail) return;
+    setSavingDate(true);
+    const { error } = await supabase
+      .from('publicacoes_staged')
+      .update({ data_postagem: stagedDate || null } as any)
+      .eq('id', stagedDetail.id);
+    if (error) { toast({ title: 'Erro ao salvar data', description: error.message, variant: 'destructive' }); }
+    else {
+      setStaged(prev => prev.map(x => x.id === stagedDetail.id ? { ...x, data_postagem: stagedDate } as PublicacaoStaged : x));
+      setStagedDetail(prev => prev ? { ...prev, data_postagem: stagedDate } as PublicacaoStaged : prev);
+      toast({ title: 'Data de postagem salva!' });
+    }
+    setSavingDate(false);
+  };
 
   /* create/edit dialog */
   const [editIdeia, setEditIdeia] = useState<Ideia | null>(null);
@@ -647,6 +684,184 @@ const IdeiasPage = () => {
         </DialogContent>
       </Dialog>
 
+      {/* ── Staged detail drawer ── */}
+      {stagedDetailOpen && stagedDetail && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+            onClick={() => setStagedDetailOpen(false)}
+          />
+          <aside className="fixed right-0 top-0 h-full z-50 w-full max-w-[480px] bg-card border-l border-border shadow-glass-lg flex flex-col animate-slide-right">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
+              <div className="flex items-center gap-2.5">
+                <PlatformBadge platform={stagedDetail.plataforma} size="sm" />
+                <span className="text-sm font-semibold text-foreground">Detalhes da Publicação</span>
+              </div>
+              <button
+                onClick={() => setStagedDetailOpen(false)}
+                className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-5">
+
+              {/* Status */}
+              {(() => {
+                const cfg = STAGED_STATUS_CONFIG[stagedDetail.status as keyof typeof STAGED_STATUS_CONFIG];
+                return cfg ? (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold"
+                    style={{ backgroundColor: cfg.bg, color: cfg.color }}>
+                    {stagedDetail.status}
+                  </span>
+                ) : null;
+              })()}
+
+              {/* Data de postagem */}
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5" /> Data de Postagem
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="date"
+                    value={stagedDate}
+                    onChange={e => setStagedDate(e.target.value)}
+                    className="h-8 text-sm flex-1"
+                  />
+                  <Button size="sm" className="h-8 px-3" onClick={savePostDate} disabled={savingDate}>
+                    {savingDate ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Salvar'}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Conteúdo gerado */}
+              {stagedDetail.conteudo_gerado && (
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                    <AlignLeft className="w-3.5 h-3.5" /> Conteúdo Gerado
+                  </Label>
+                  <div className="bg-muted/40 rounded-lg p-3.5 text-[13px] text-foreground leading-relaxed whitespace-pre-wrap border border-border/50">
+                    {stagedDetail.conteudo_gerado}
+                  </div>
+                </div>
+              )}
+
+              {/* Hashtags */}
+              {stagedDetail.hashtags && (
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                    <Hash className="w-3.5 h-3.5" /> Hashtags
+                  </Label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {stagedDetail.hashtags.split(/\s+/).filter(Boolean).map(h => (
+                      <span key={h} className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[11px] font-medium">
+                        {h}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Roteiro */}
+              {stagedDetail.roteiro && (
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                    <Layers className="w-3.5 h-3.5" /> Roteiro
+                  </Label>
+                  <div className="bg-muted/40 rounded-lg p-3.5 text-[13px] text-foreground leading-relaxed whitespace-pre-wrap border border-border/50">
+                    {stagedDetail.roteiro}
+                  </div>
+                </div>
+              )}
+
+              {/* Mídia */}
+              {stagedDetail.url_imagem && (
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Imagem</Label>
+                  <button
+                    onClick={() => viewMedia(stagedDetail.url_imagem!, 'image')}
+                    className="w-full rounded-lg overflow-hidden border border-border/50 group"
+                  >
+                    <img src={stagedDetail.url_imagem} alt="imagem" className="w-full object-cover max-h-60 group-hover:scale-105 transition-transform duration-300" />
+                  </button>
+                </div>
+              )}
+              {stagedDetail.url_video && (
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Vídeo</Label>
+                  <button
+                    onClick={() => viewMedia(stagedDetail.url_video!, 'video')}
+                    className="w-full h-20 rounded-lg bg-black/50 flex items-center justify-center border border-border/50 gap-2 hover:bg-black/70 transition-colors"
+                  >
+                    <Play className="w-6 h-6 text-white" />
+                    <span className="text-sm text-white/70">Assistir vídeo</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Motivo rejeição */}
+              {stagedDetail.motivo_rejeicao && (
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/8 border border-destructive/20">
+                  <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-semibold text-destructive mb-0.5">Motivo da Rejeição</p>
+                    <p className="text-xs text-destructive/80">{stagedDetail.motivo_rejeicao}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Meta */}
+              <div className="pt-2 border-t border-border/50 space-y-1">
+                <p className="text-[11px] text-muted-foreground">
+                  Criado em: {fmt(stagedDetail.created_at)}
+                </p>
+                {stagedDetail.ideia_id && (
+                  <p className="text-[11px] text-muted-foreground">ID da Ideia: #{stagedDetail.ideia_id}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Footer actions */}
+            <div className="px-5 py-4 border-t border-border shrink-0 flex gap-2">
+              {stagedDetail.status === 'Em andamento' && (
+                <>
+                  <Button size="sm" className="flex-1 bg-green-600 hover:bg-green-500 text-white h-8"
+                    onClick={() => { approveStaged(stagedDetail); setStagedDetailOpen(false); }}>
+                    <Check className="w-3.5 h-3.5 mr-1" /> Aprovar
+                  </Button>
+                  <Button size="sm" variant="ghost" className="flex-1 text-destructive hover:bg-destructive/10 h-8"
+                    onClick={() => { setStagedDetailOpen(false); openRejectStaged(stagedDetail); }}>
+                    <X className="w-3.5 h-3.5 mr-1" /> Rejeitar
+                  </Button>
+                </>
+              )}
+              {stagedDetail.status === 'Aprovado' && (
+                <>
+                  <Button size="sm" className="flex-1 h-8"
+                    onClick={() => { concludeStaged(stagedDetail); setStagedDetailOpen(false); }}>
+                    <Check className="w-3.5 h-3.5 mr-1" /> Concluir
+                  </Button>
+                  <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10 h-8 px-3"
+                    onClick={() => { setStagedDetailOpen(false); openRejectStaged(stagedDetail); }}>
+                    <X className="w-3.5 h-3.5" />
+                  </Button>
+                </>
+              )}
+              {stagedDetail.status === 'Rejeitado' && (
+                <Button size="sm" variant="outline" className="flex-1 h-8"
+                  onClick={() => { approveStaged(stagedDetail); setStagedDetailOpen(false); }}>
+                  <Check className="w-3.5 h-3.5 mr-1" /> Reativar
+                </Button>
+              )}
+            </div>
+          </aside>
+        </>
+      )}
+
       {/* create/edit dialog */}
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
@@ -862,6 +1077,7 @@ const IdeiasPage = () => {
                               onReject={openRejectStaged}
                               onConclude={concludeStaged}
                               onViewMedia={viewMedia}
+                              onOpenDetail={openStagedDetail}
                             />
                           ))}
                           {items.length === 0 && (
