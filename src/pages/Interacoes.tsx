@@ -28,7 +28,8 @@ const CANAL_CFG: Record<string, { icon: any; color: string; label: string }> = {
 function getStatusCalc(int: any): 'concluido' | 'em_executar' | 'em_aberto' {
   if (int.status === 'concluido' || int.status === 'aprovado' || int.status === 'resolvido') return 'concluido';
   const dateField = int.data_proxima_acao || int.proxima_acao;
-  if (!dateField || !/^\d{4}-\d{2}-\d{2}/.test(dateField)) return 'em_aberto';
+  // Sem data de próxima ação = sem ação pendente = concluída
+  if (!dateField) return 'concluido';
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
   const data = new Date(dateField.substring(0, 10) + 'T00:00:00');

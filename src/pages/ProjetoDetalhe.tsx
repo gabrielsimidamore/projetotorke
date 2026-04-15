@@ -180,7 +180,7 @@ const ProjetoDetalhe = () => {
   const getStatusCalculado = (int: any): 'concluido' | 'em_executar' | 'em_aberto' => {
     if (int.status === 'concluido') return 'concluido';
     const dateField = int.data_proxima_acao || (int.proxima_acao && /^\d{4}-\d{2}-\d{2}/.test(int.proxima_acao) ? int.proxima_acao : null);
-    if (!dateField) return 'em_aberto';
+    if (!dateField) return 'concluido';
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
     const data = new Date(dateField.substring(0, 10) + 'T00:00:00');
