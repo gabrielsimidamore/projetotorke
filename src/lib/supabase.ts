@@ -19,10 +19,13 @@ export type Cliente = {
 
 // ─── Interações ───────────────────────────────────────────────
 export type Interacao = {
-  id: string; cliente_id: string;
+  id: string; cliente_id: string; projeto_id?: string | null;
   canal: 'email' | 'whatsapp' | 'linkedin' | 'ligacao' | 'presencial' | 'instagram';
-  mensagem: string; status: 'respondido' | 'pendente' | 'aberto' | 'resolvido' | 'aguardando';
-  data_interacao: string; clientes?: { nome: string; empresa: string };
+  mensagem: string;
+  status: 'respondido' | 'pendente' | 'aberto' | 'resolvido' | 'aguardando' | 'concluido' | 'em_executar' | 'aprovado';
+  proxima_acao?: string | null;
+  data_interacao: string;
+  clientes?: { id: string; nome: string; empresa: string; telefone?: string; email?: string } | null;
 };
 
 // ─── Ideias ───────────────────────────────────────────────────
@@ -158,6 +161,7 @@ export type Notificacao = {
   titulo: string; mensagem: string | null;
   entidade_tipo: string | null; entidade_id: string | null;
   responsavel: string | null; lida: boolean; created_at: string;
+  destinatario_email?: string | null;
 };
 
 // ─── Custos de Projeto ───────────────────────────────────────

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  ArrowLeft, CalendarDays, CheckCircle2, CircleDollarSign,
+  ArrowLeft, CalendarDays, CheckCircle2, ChevronRight, CircleDollarSign,
   Loader2, Plus, Save, Target, Trash2, Users, MessageSquare,
   Building2, Phone, Mail, Calendar, Pencil, Palette,
 } from 'lucide-react';
@@ -82,7 +82,8 @@ const CANAL_LABELS: Record<string, string> = {
 
 const STATUS_INTERACAO: Record<string, string> = {
   aberto: 'Aberto', pendente: 'Pendente', aguardando: 'Aguardando',
-  resolvido: 'Resolvido', respondido: 'Respondido', aprovado: 'Aprovado', concluido: 'Concluído',
+  resolvido: 'Resolvido', respondido: 'Respondido', aprovado: 'Aprovado',
+  concluido: 'Concluído', em_executar: 'Em Executar',
 };
 
 const ProjetoDetalhe = () => {
@@ -174,6 +175,52 @@ const ProjetoDetalhe = () => {
     return true;
   });
 
+  const [intClienteSelectedId, setIntClienteSelectedId] = useState<string | null>(null);
+
+  const getStatusCalculado = (int: any): 'concluido' | 'em_executar' | 'em_aberto' => {
+    if (int.status === 'concluido') return 'concluido';
+    if (!int.proxima_acao) return 'em_aberto';
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+    const data = new Date(int.proxima_acao + 'T00:00:00');
+    if (data <= today) return 'concluido';
+    if (data.getTime() === tomorrow.getTime()) return 'em_executar';
+    return 'em_aberto';
+  };
+
+  const interacoesPorCliente = useMemo(() => {
+    const map = new Map<string, { clienteId: string; cliente: any; interacoes: any[]; emAberto: number; emExecutar: number; concluido: number }>();
+    interacoesFiltradas.forEach(int => {
+      const cId = int.cliente_id || 'sem_cliente';
+      const sc = getStatusCalculado(int);
+      if (!map.has(cId)) {
+        map.set(cId, { clienteId: cId, cliente: int.clientes || { id: cId, nome: 'Sem cliente', empresa: '' }, interacoes: [], emAberto: 0, emExecutar: 0, concluido: 0 });
+      }
+      const entry = map.get(cId)!;
+      entry.interacoes.push(int);
+      if (sc === 'em_aberto') entry.emAberto++;
+      else if (sc === 'em_executar') entry.emExecutar++;
+      else entry.concluido++;
+    });
+    return Array.from(map.values()).filter(e => e.interacoes.length > 0);
+  }, [interacoesFiltradas]);
+
+  const intMetrics = useMemo(() => {
+    let concluido = 0, emAberto = 0, emExecutar = 0;
+    interacoes.forEach(i => {
+      const sc = getStatusCalculado(i);
+      if (sc === 'concluido') concluido++;
+      else if (sc === 'em_executar') emExecutar++;
+      else emAberto++;
+    });
+    return { concluido, emAberto, emExecutar };
+  }, [interacoes]);
+
+  const intDrawerData = useMemo(() =>
+    intClienteSelectedId ? (interacoesPorCliente.find(e => e.clienteId === intClienteSelectedId) ?? null) : null,
+    [intClienteSelectedId, interacoesPorCliente]
+  );
+
   const handleDeleteInteracao = async (intId: string) => {
     setDeletingIntId(intId);
     const { error } = await supabase.from('interacoes').delete().eq('id', intId);
@@ -194,13 +241,19 @@ const ProjetoDetalhe = () => {
     e.preventDefault();
     if (!editInteracao) return;
     setSavingEditInt(true);
+    // Auto-compute status based on proxima_acao date
+    let newStatus = editInteracao.status;
+    if (editInteracao.proxima_acao && newStatus !== 'concluido') {
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      if (new Date(editInteracao.proxima_acao + 'T00:00:00') <= today) newStatus = 'concluido';
+    }
     const { error } = await supabase.from('interacoes').update({
-      mensagem: editInteracao.mensagem, status: editInteracao.status,
-      canal: editInteracao.canal, proxima_acao: editInteracao.proxima_acao,
+      mensagem: editInteracao.mensagem, status: newStatus,
+      canal: editInteracao.canal, proxima_acao: editInteracao.proxima_acao || null,
     }).eq('id', editInteracao.id);
     setSavingEditInt(false);
     if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
-    setInteracoes(prev => prev.map(i => i.id === editInteracao.id ? { ...i, ...editInteracao } : i));
+    setInteracoes(prev => prev.map(i => i.id === editInteracao.id ? { ...i, ...editInteracao, status: newStatus } : i));
     toast({ title: 'Interação atualizada!' });
     setEditInteracao(null);
   };
@@ -309,7 +362,23 @@ const ProjetoDetalhe = () => {
     setCustos(c.data ?? []);
     setMetricas(m.data ?? []);
     setIdeias(i.data ?? []);
-    setInteracoes(int.data ?? []);
+
+    // Auto-complete interactions where proxima_acao has passed
+    const rawInteracoes = int.data ?? [];
+    const today0 = new Date(); today0.setHours(0, 0, 0, 0);
+    const overdue = rawInteracoes.filter((ix: any) =>
+      ix.status !== 'concluido' && ix.proxima_acao &&
+      new Date(ix.proxima_acao + 'T00:00:00') <= today0
+    );
+    if (overdue.length > 0) {
+      await Promise.all(overdue.map((ix: any) =>
+        supabase.from('interacoes').update({ status: 'concluido' }).eq('id', ix.id)
+      ));
+    }
+    setInteracoes(rawInteracoes.map((ix: any) =>
+      overdue.find((o: any) => o.id === ix.id) ? { ...ix, status: 'concluido' } : ix
+    ));
+
     setReunioes(reu.data ?? []);
 
     // Load all clients of this project
@@ -834,18 +903,33 @@ const ProjetoDetalhe = () => {
 
           {/* ─── INTERAÇÕES ─── */}
           <TabsContent value="interacoes">
+            {/* Metrics */}
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              {[
+                { label: 'Concluídas', value: intMetrics.concluido, color: 'text-green-600', bg: 'bg-green-50 dark:bg-green-900/20' },
+                { label: 'Em Aberto', value: intMetrics.emAberto, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/20' },
+                { label: 'Executar Hoje', value: intMetrics.emExecutar, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+              ].map(({ label, value, color, bg }) => (
+                <Card key={label} style={{ borderColor: `${accentColor}30` }}>
+                  <CardContent className={`p-4 text-center ${bg} rounded-xl`}>
+                    <p className={`text-2xl font-bold ${color}`}>{value}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
             <Card>
               <CardHeader className="pb-3">
                 <div className="flex flex-row items-center justify-between gap-2">
                   <div>
-                    <CardTitle className="text-lg">Interações do Projeto</CardTitle>
-                    <CardDescription>{interacoesFiltradas.length} de {interacoes.length} interações.</CardDescription>
+                    <CardTitle className="text-lg">Interações por Cliente</CardTitle>
+                    <CardDescription>{interacoesPorCliente.length} cliente{interacoesPorCliente.length !== 1 ? 's' : ''} com interações</CardDescription>
                   </div>
                   <Button size="sm" variant="outline" onClick={() => navigate('/interacoes')} className="gap-1.5 shrink-0 text-xs">
                     <MessageSquare className="w-3.5 h-3.5" />Ver todas
                   </Button>
                 </div>
-                {/* Date filter */}
                 <div className="flex items-center gap-2 mt-2 flex-wrap">
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <span>De:</span>
@@ -856,65 +940,129 @@ const ProjetoDetalhe = () => {
                     <Input type="date" value={intDateTo} onChange={e => setIntDateTo(e.target.value)} className="h-7 text-xs w-36" />
                   </div>
                   {(intDateFrom || intDateTo) && (
-                    <button onClick={() => { setIntDateFrom(''); setIntDateTo(''); }} className="text-xs text-muted-foreground hover:text-foreground">
-                      Limpar
-                    </button>
+                    <button onClick={() => { setIntDateFrom(''); setIntDateTo(''); }} className="text-xs text-muted-foreground hover:text-foreground">Limpar</button>
                   )}
                 </div>
               </CardHeader>
-              <CardContent className="space-y-3">
-                {interacoesFiltradas.length === 0 ? (
+              <CardContent className="space-y-2">
+                {interacoesPorCliente.length === 0 ? (
                   <p className="text-sm text-muted-foreground py-4 text-center">
-                    {interacoes.length === 0 ? 'Nenhuma interação vinculada.' : 'Nenhuma interação no período selecionado.'}
+                    {interacoes.length === 0 ? 'Nenhuma interação vinculada.' : 'Nenhuma interação no período.'}
                   </p>
                 ) : (
-                  interacoesFiltradas.map(int => (
-                    <div key={int.id} className="border border-border rounded-xl p-4 group" style={{ borderLeftColor: accentColor, borderLeftWidth: 3 }}>
-                      <div className="flex items-start justify-between gap-2">
+                  interacoesPorCliente.map(entry => (
+                    <div
+                      key={entry.clienteId}
+                      onClick={() => setIntClienteSelectedId(entry.clienteId)}
+                      className="border border-border rounded-xl p-3.5 flex items-center justify-between gap-3 cursor-pointer hover:bg-accent/40 transition-colors"
+                      style={{ borderLeftColor: accentColor, borderLeftWidth: 3 }}
+                    >
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div
+                          className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0"
+                          style={{ backgroundColor: accentColor }}
+                        >
+                          {(entry.cliente?.nome || 'S').charAt(0).toUpperCase()}
+                        </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="font-medium text-foreground text-sm">{int.clientes?.nome || 'Cliente'}</p>
-                            {int.clientes?.empresa && <span className="text-xs text-muted-foreground">{int.clientes.empresa}</span>}
-                          </div>
-                          <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">{int.mensagem || 'Sem mensagem'}</p>
-                          <div className="flex flex-wrap gap-2 mt-1.5 text-xs text-muted-foreground">
-                            <span>{CANAL_LABELS[int.canal] || int.canal}</span>
-                            <span>·</span>
-                            <span>{new Date(int.data_interacao).toLocaleDateString('pt-BR')}</span>
-                          </div>
+                          <p className="font-semibold text-foreground truncate text-sm">{entry.cliente?.nome || 'Sem cliente'}</p>
+                          {entry.cliente?.empresa && (
+                            <p className="text-xs text-muted-foreground truncate">{entry.cliente.empresa}</p>
+                          )}
                         </div>
-                        <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
-                          <Badge className={getBadgeStyle(int.status)}>{STATUS_INTERACAO[int.status] || int.status}</Badge>
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            {int.status !== 'concluido' && (
-                              <button
-                                onClick={() => handleCompleteInteracao(int.id)}
-                                className="text-xs px-2 py-0.5 rounded bg-green-100 text-green-700 hover:bg-green-200 transition-colors"
-                              >
-                                Concluir
-                              </button>
-                            )}
-                            <button
-                              onClick={() => setEditInteracao({ ...int })}
-                              className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                            >
-                              <Pencil className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteInteracao(int.id)}
-                              disabled={deletingIntId === int.id}
-                              className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-red-50 transition-colors"
-                            >
-                              {deletingIntId === int.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                            </button>
-                          </div>
-                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {entry.emAberto > 0 && (
+                          <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 text-xs">
+                            {entry.emAberto} aberto
+                          </Badge>
+                        )}
+                        {entry.emExecutar > 0 && (
+                          <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 text-xs">
+                            {entry.emExecutar} hoje
+                          </Badge>
+                        )}
+                        <span className="text-xs text-muted-foreground font-medium">{entry.interacoes.length} total</span>
+                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
                       </div>
                     </div>
                   ))
                 )}
               </CardContent>
             </Card>
+
+            {/* Client interactions drawer */}
+            <Dialog open={!!intClienteSelectedId} onOpenChange={open => { if (!open) setIntClienteSelectedId(null); }}>
+              <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <MessageSquare className="w-4 h-4" style={{ color: accentColor }} />
+                    {intDrawerData?.cliente?.nome || 'Cliente'} — Interações
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-2 mt-1">
+                  {(intDrawerData?.interacoes ?? []).map(int => {
+                    const sc = getStatusCalculado(int);
+                    return (
+                      <div key={int.id} className="border border-border rounded-xl p-4 group" style={{ borderLeftColor: accentColor, borderLeftWidth: 3 }}>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-foreground line-clamp-2">{int.mensagem || 'Sem mensagem'}</p>
+                            <div className="flex flex-wrap gap-2 mt-1.5 text-xs text-muted-foreground">
+                              <span>{CANAL_LABELS[int.canal] || int.canal}</span>
+                              <span>·</span>
+                              <span>{new Date(int.data_interacao).toLocaleDateString('pt-BR')}</span>
+                              {int.proxima_acao && (
+                                <>
+                                  <span>·</span>
+                                  <span className={sc === 'em_executar' ? 'text-blue-600 font-medium' : sc === 'em_aberto' ? 'text-amber-600' : ''}>
+                                    Próx: {new Date(int.proxima_acao + 'T00:00:00').toLocaleDateString('pt-BR')}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+                            <Badge className={
+                              sc === 'concluido'
+                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                                : sc === 'em_executar'
+                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                                : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
+                            }>
+                              {sc === 'concluido' ? 'Concluída' : sc === 'em_executar' ? 'Executar Hoje' : 'Em Aberto'}
+                            </Badge>
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              {sc !== 'concluido' && (
+                                <button
+                                  onClick={() => handleCompleteInteracao(int.id)}
+                                  className="text-xs px-2 py-0.5 rounded bg-green-100 text-green-700 hover:bg-green-200 transition-colors"
+                                >
+                                  Concluir
+                                </button>
+                              )}
+                              <button
+                                onClick={() => setEditInteracao({ ...int })}
+                                className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteInteracao(int.id)}
+                                disabled={deletingIntId === int.id}
+                                className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-red-50 transition-colors"
+                              >
+                                {deletingIntId === int.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </DialogContent>
+            </Dialog>
 
             {/* Edit interaction dialog */}
             <Dialog open={!!editInteracao} onOpenChange={open => { if (!open) setEditInteracao(null); }}>
@@ -927,7 +1075,7 @@ const ProjetoDetalhe = () => {
                       <Select value={editInteracao.status} onValueChange={v => setEditInteracao({ ...editInteracao, status: v })}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          {Object.entries(STATUS_INTERACAO).map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
+                          {Object.entries(STATUS_INTERACAO).map(([v, l]) => <SelectItem key={v} value={v}>{l as string}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </div>
@@ -936,7 +1084,7 @@ const ProjetoDetalhe = () => {
                       <Select value={editInteracao.canal} onValueChange={v => setEditInteracao({ ...editInteracao, canal: v })}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          {Object.entries(CANAL_LABELS).map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
+                          {Object.entries(CANAL_LABELS).map(([v, l]) => <SelectItem key={v} value={v}>{l as string}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </div>
@@ -945,8 +1093,8 @@ const ProjetoDetalhe = () => {
                       <Textarea value={editInteracao.mensagem || ''} onChange={e => setEditInteracao({ ...editInteracao, mensagem: e.target.value })} rows={3} />
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-xs">Próxima ação</Label>
-                      <Input value={editInteracao.proxima_acao || ''} onChange={e => setEditInteracao({ ...editInteracao, proxima_acao: e.target.value })} />
+                      <Label className="text-xs">Data da próxima ação</Label>
+                      <Input type="date" value={editInteracao.proxima_acao || ''} onChange={e => setEditInteracao({ ...editInteracao, proxima_acao: e.target.value })} />
                     </div>
                     <Button type="submit" className="w-full" disabled={savingEditInt} style={{ backgroundColor: accentColor }}>
                       {savingEditInt && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Salvar
