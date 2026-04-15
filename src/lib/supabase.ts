@@ -24,6 +24,7 @@ export type Interacao = {
   mensagem: string;
   status: 'respondido' | 'pendente' | 'aberto' | 'resolvido' | 'aguardando' | 'concluido' | 'em_executar' | 'aprovado';
   proxima_acao?: string | null;
+  data_proxima_acao?: string | null;
   data_interacao: string;
   clientes?: { id: string; nome: string; empresa: string; telefone?: string; email?: string } | null;
 };

@@ -27,10 +27,11 @@ const CANAL_CFG: Record<string, { icon: any; color: string; label: string }> = {
 
 function getStatusCalc(int: any): 'concluido' | 'em_executar' | 'em_aberto' {
   if (int.status === 'concluido' || int.status === 'aprovado' || int.status === 'resolvido') return 'concluido';
-  if (!int.proxima_acao) return 'em_aberto';
+  const dateField = int.data_proxima_acao || int.proxima_acao;
+  if (!dateField || !/^\d{4}-\d{2}-\d{2}/.test(dateField)) return 'em_aberto';
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
-  const data = new Date(int.proxima_acao + 'T00:00:00');
+  const data = new Date(dateField.substring(0, 10) + 'T00:00:00');
   if (data <= today) return 'concluido';
   if (data.getTime() === tomorrow.getTime()) return 'em_executar';
   return 'em_aberto';
@@ -50,7 +51,7 @@ function relTime(date: string) {
 
 const emptyForm = {
   cliente_id: '', projeto_id: '', canal: '', data: '',
-  regiao: '', mensagem: '', proxima_acao: '', status: 'aberto',
+  regiao: '', mensagem: '', data_proxima_acao: '', status: 'aberto',
 };
 
 export default function Interacoes() {
@@ -90,10 +91,11 @@ export default function Interacoes() {
     // Auto-complete overdue interactions (proxima_acao <= today)
     const raw = i.data ?? [];
     const today0 = new Date(); today0.setHours(0, 0, 0, 0);
-    const overdue = raw.filter((ix: any) =>
-      ix.status !== 'concluido' && ix.status !== 'aprovado' && ix.status !== 'resolvido' &&
-      ix.proxima_acao && new Date(ix.proxima_acao + 'T00:00:00') <= today0
-    );
+    const overdue = raw.filter((ix: any) => {
+      const df = ix.data_proxima_acao || (ix.proxima_acao && /^\d{4}-\d{2}-\d{2}/.test(ix.proxima_acao) ? ix.proxima_acao : null);
+      return ix.status !== 'concluido' && ix.status !== 'aprovado' && ix.status !== 'resolvido' &&
+        df && new Date(df.substring(0, 10) + 'T00:00:00') <= today0;
+    });
     if (overdue.length > 0) {
       await Promise.all(overdue.map((ix: any) =>
         supabase.from('interacoes').update({ status: 'concluido' }).eq('id', ix.id)
@@ -164,7 +166,7 @@ export default function Interacoes() {
       status: form.status,
       data_interacao: form.data ? new Date(form.data).toISOString() : new Date().toISOString(),
       ...(form.regiao && { regiao: form.regiao }),
-      ...(form.proxima_acao && { proxima_acao: form.proxima_acao }),
+      ...(form.data_proxima_acao && { data_proxima_acao: form.data_proxima_acao }),
       ...(form.projeto_id && { projeto_id: form.projeto_id }),
     };
 
@@ -210,13 +212,13 @@ export default function Interacoes() {
     if (!editInteracao) return;
     setSavingEdit(true);
     let newStatus = editInteracao.status;
-    if (editInteracao.proxima_acao && newStatus !== 'concluido') {
+    if (editInteracao.data_proxima_acao && newStatus !== 'concluido') {
       const today0 = new Date(); today0.setHours(0, 0, 0, 0);
-      if (new Date(editInteracao.proxima_acao + 'T00:00:00') <= today0) newStatus = 'concluido';
+      if (new Date(editInteracao.data_proxima_acao + 'T00:00:00') <= today0) newStatus = 'concluido';
     }
     const { error } = await supabase.from('interacoes').update({
       mensagem: editInteracao.mensagem, status: newStatus,
-      canal: editInteracao.canal, proxima_acao: editInteracao.proxima_acao || null,
+      canal: editInteracao.canal, data_proxima_acao: editInteracao.data_proxima_acao || null,
     }).eq('id', editInteracao.id);
     setSavingEdit(false);
     if (error) { toast({ title: 'Erro', variant: 'destructive' }); return; }
@@ -380,7 +382,7 @@ export default function Interacoes() {
                 {/* Próxima Ação - data */}
                 <div className="space-y-1.5">
                   <Label>Data da Próxima Ação</Label>
-                  <Input type="date" value={form.proxima_acao} onChange={e => setForm({ ...form, proxima_acao: e.target.value })} />
+                  <Input type="date" value={form.data_proxima_acao} onChange={e => setForm({ ...form, data_proxima_acao: e.target.value })} />
                   <p className="text-xs text-muted-foreground">
                     Automaticamente: hoje/passou = Concluída · amanhã = Executar Hoje · futuro = Em Aberto
                   </p>
@@ -634,13 +636,13 @@ export default function Interacoes() {
                               <p className="text-sm text-foreground/80 leading-relaxed">
                                 {int.mensagem || 'Sem mensagem'}
                               </p>
-                              {int.proxima_acao && (
+                              {(int.data_proxima_acao) && (
                                 <p className={`text-xs mt-1.5 ${
                                   sc === 'em_executar' ? 'text-blue-600 font-medium' :
                                   sc === 'em_aberto' ? 'text-amber-600' : 'text-muted-foreground'
                                 }`}>
                                   Próxima ação:{' '}
-                                  {new Date(int.proxima_acao + 'T00:00:00').toLocaleDateString('pt-BR')}
+                                  {new Date(int.data_proxima_acao + 'T00:00:00').toLocaleDateString('pt-BR')}
                                 </p>
                               )}
                               {int.anexos?.length > 0 && (
@@ -723,8 +725,8 @@ export default function Interacoes() {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Data da próxima ação</Label>
-                <Input type="date" value={editInteracao.proxima_acao || ''}
-                  onChange={e => setEditInteracao({ ...editInteracao, proxima_acao: e.target.value })} />
+                <Input type="date" value={editInteracao.data_proxima_acao || ''}
+                  onChange={e => setEditInteracao({ ...editInteracao, data_proxima_acao: e.target.value })} />
               </div>
               <Button type="submit" className="w-full" disabled={savingEdit}>
                 {savingEdit && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Salvar
