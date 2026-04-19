@@ -22,6 +22,8 @@ import NotificacoesPage from "./pages/Notificacoes";
 import NotFound from "./pages/NotFound";
 import InsightsPage from "./pages/Insights";
 import MelhoriasPage from "./pages/Melhorias";
+import ArquivosPage from "./pages/Arquivos";
+import TrafegoPagoPage from "./pages/TrafegoPago";
 
 const queryClient = new QueryClient();
 
@@ -68,6 +70,8 @@ const App = () => (
               <Route path="/notificacoes" element={<ProtectedRoute><NotificacoesPage /></ProtectedRoute>} />
               <Route path="/insights" element={<ProtectedRoute><InsightsPage /></ProtectedRoute>} />
               <Route path="/melhorias" element={<ProtectedRoute><MelhoriasPage /></ProtectedRoute>} />
+              <Route path="/arquivos" element={<ProtectedRoute><ArquivosPage /></ProtectedRoute>} />
+              <Route path="/trafego-pago" element={<ProtectedRoute><TrafegoPagoPage /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Lightbulb, FileText, BarChart3, Sparkles,
   LogOut, Sun, Moon, MessageSquare, FolderKanban, ShoppingCart,
   CalendarDays, Bell, ChevronDown, ChevronRight, Plus, Wrench,
-  Users, TrendingUp,
+  Users, TrendingUp, FolderOpen, Megaphone,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
@@ -38,8 +38,10 @@ const navGroups = [
   {
     label: 'Conteúdo',
     items: [
-      { title: 'Ideias',       url: '/ideias',      icon: Lightbulb       },
-      { title: 'Posts',        url: '/posts',       icon: FileText        },
+      { title: 'Ideias',        url: '/ideias',        icon: Lightbulb   },
+      { title: 'Posts',         url: '/posts',         icon: FileText    },
+      { title: 'Arquivos',      url: '/arquivos',      icon: FolderOpen  },
+      { title: 'Tráfego Pago',  url: '/trafego-pago',  icon: Megaphone   },
     ],
   },
   {
