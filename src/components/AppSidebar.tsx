@@ -131,7 +131,7 @@ export function AppSidebar() {
                     {project.name}
                   </p>
                 ) : (
-                  <p className="text-[11px] text-sidebar-muted truncate">CRM Autopeças</p>
+                  <p className="text-[11px] text-sidebar-muted truncate">Automações com IA</p>
                 )}
               </div>
             )}

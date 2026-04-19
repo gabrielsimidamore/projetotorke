@@ -46,8 +46,13 @@ const Login = () => {
     const { error } = await signUp(signupEmail, signupPassword);
     if (error) {
       toast({ title: 'Erro ao criar conta', description: error.message, variant: 'destructive' });
-    } else {
-      toast({ title: 'Conta criada!', description: 'Verifique seu email para confirmar.' });
+      setLoading(false);
+      return;
+    }
+    // Auto-login após cadastro
+    const { error: loginError } = await signIn(signupEmail, signupPassword);
+    if (loginError) {
+      toast({ title: 'Conta criada!', description: 'Faça login para continuar.' });
     }
     setLoading(false);
   };
@@ -59,7 +64,7 @@ const Login = () => {
           <img src={logo} alt="Torke 360" className="w-20 h-20 rounded-xl object-contain" />
           <div className="text-center">
             <h1 className="text-xl font-bold text-foreground">Torke Assistem</h1>
-            <p className="text-xs text-muted-foreground">CRM para autopeças</p>
+            <p className="text-xs text-muted-foreground">Automações com IA</p>
           </div>
         </div>
 
