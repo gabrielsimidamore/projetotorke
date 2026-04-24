@@ -92,3 +92,27 @@ export const STAGED_STATUS_CONFIG = {
   'Aprovado':     { color: '#22c55e', bg: 'rgba(34,197,94,0.12)',  label: 'Aprovado'     },
   'Rejeitado':    { color: '#ef4444', bg: 'rgba(239,68,68,0.12)',  label: 'Rejeitado'    },
 } as const;
+
+// ─── Status pipeline de posts ─────────────────────────────────
+export const POST_PIPELINE_STATUS = [
+  'Aguardando vídeo',
+  'Em edição',
+  'Pronto',
+  'Postado',
+  'Aguardando métricas',
+] as const;
+
+export type PostPipelineStatus = typeof POST_PIPELINE_STATUS[number];
+
+export const POST_STATUS_CONFIG: Record<string, {
+  color: string; bg: string; icon: string; label: string;
+}> = {
+  'Aguardando vídeo':    { color: '#d97706', bg: '#FAEEDA', icon: '🎬', label: 'Aguardando vídeo'    },
+  'Em edição':           { color: '#7c3aed', bg: '#EEEDFE', icon: '✂️', label: 'Em edição'           },
+  'Pronto':              { color: '#16a34a', bg: '#E1F5EE', icon: '✓',  label: 'Pronto'              },
+  'Postado':             { color: '#6b7280', bg: '#F1EFE8', icon: '📤', label: 'Postado'             },
+  'Aguardando métricas': { color: '#2563eb', bg: '#E6F1FB', icon: '📊', label: 'Aguardando métricas' },
+};
+
+// ─── URL base do N8N ─────────────────────────────────────────
+export const N8N_BASE_URL = import.meta.env.VITE_N8N_URL ?? 'https://n8n.seudominio.com';
