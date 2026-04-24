@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'https://pirlajhqenegpedomnug.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBpcmxhamhxZW5lZ3BlZG9tbnVnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2MDI0MjcsImV4cCI6MjA5MjE3ODQyN30.8TuwjRh8VjEPasZ4jq1c6GDapzl8RNc0txxYF-4cjXE';
+const supabaseUrl = 'https://fgnqdlryeakowjphamll.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZnbnFkbHJ5ZWFrb3dqcGhhbWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNTA2NDMsImV4cCI6MjA5MTkyNjY0M30.4b7MwFh9-y_Ry-_P8zPG05FEqRnRKefveuNO_af_DNI';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
@@ -30,23 +30,44 @@ export type Interacao = {
 };
 
 // ─── Ideias ───────────────────────────────────────────────────
-export type IdeiaStatus = 'Em andamento' | 'Aprovado' | 'Rejeitado' | 'Concluído';
+export type IdeiaStatus =
+  | 'Em andamento'
+  | 'Aprovado'
+  | 'Rejeitado'
+  | 'Aguardando vídeo'
+  | 'Em edição'
+  | 'Pronto'
+  | 'Postado'
+  | 'Concluído';
+
+export type IdeiaOrigem = 'ia' | 'manual';
 
 export type Ideia = {
   id: number;
   created_at: string;
-  data_cadastro?: string;
   assunto_tema: string;
   formato: FormatoConteudo | string;
-  observacoes: string | null;         // notas do usuário para a IA
-  roteiro: string | null;             // roteiro gerado pelo n8n (editável)
-  url_video: string | null;           // vídeo gravado enviado pelo usuário
-  imagem_url: string | null;           // imagem enviada pelo usuário (LinkedIn)
+  observacoes: string | null;
+  roteiro: string | null;
+  url_video: string | null;
+  imagem_url: string | null;
   motivo_rejeicao: string | null;
   status: IdeiaStatus;
-  data_uso: string | null;
   plataforma: Plataforma | string;
-  data_postagem: string | null;       // data marcada como Concluído
+  data_postagem: string | null;
+  origem: IdeiaOrigem;
+  updated_at: string;
+};
+
+// ─── Perfil Criador ───────────────────────────────────────────
+export type PerfilCriador = {
+  id: string;
+  versao: number;
+  perfil_texto: string;
+  resumo: string | null;
+  ativo: boolean;
+  gerado_em: string;
+  created_at: string;
 };
 
 // ─── Publicações Staged ───────────────────────────────────────
@@ -97,6 +118,10 @@ export type Post = {
   comentarios: number;
   compartilhamentos: number;
   cliques_perfil: number;
+  // pipeline
+  pipeline_status?: string | null;
+  metricas_coletadas_em?: string | null;
+  score_performance?: number | null;
   created_at: string;
 };
 
