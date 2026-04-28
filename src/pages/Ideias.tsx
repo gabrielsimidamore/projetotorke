@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Plus, Loader2, FileText, X, Check, AlertCircle,
   Play, Eye, Calendar, Hash, AlignLeft, Layers,
-  Sparkles, Pencil as PencilIcon, ChevronRight,
+  Sparkles, Pencil as PencilIcon, ChevronRight, Trash2,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { PlatformBadge, PlatformIcon } from '@/components/PlatformBadge';
@@ -20,7 +20,7 @@ import { N8nStatusBar } from '@/components/N8nStatusBar';
 import { PLATAFORMAS, FORMATO_POR_PLATAFORMA, STAGED_STATUS_CONFIG } from '@/lib/constants';
 import { updateIdeia, createIdeia, triggerGerarRoteiro } from '@/hooks/useIdeias';
 
-/* ── helpers ── */
+/* ââ helpers ââ */
 const fmt = (d?: string | null) =>
   d ? new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : null;
 
@@ -37,7 +37,7 @@ const normPlat = (p: string): Plataforma => {
   return (found ?? p) as Plataforma;
 };
 
-/* ── Platform badge colors spec ── */
+/* ââ Platform badge colors spec ââ */
 const PLAT_BADGE: Record<string, { bg: string; color: string }> = {
   Instagram: { bg: '#fde8f5', color: '#8b1a5e' },
   TikTok:    { bg: '#e8f0fe', color: '#1a3a8b' },
@@ -45,18 +45,19 @@ const PLAT_BADGE: Record<string, { bg: string; color: string }> = {
   YouTube:   { bg: '#fff0e8', color: '#8b3a00' },
 };
 
-/* ══════════════════════════════════════════════
-   IdeiaCard — apenas "Em andamento"
-══════════════════════════════════════════════ */
+/* ââââââââââââââââââââââââââââââââââââââââââââââ
+   IdeiaCard â apenas "Em andamento"
+ââââââââââââââââââââââââââââââââââââââââââââââ */
 interface IdeiaCardProps {
   ideia: Ideia;
   removing: boolean;
   onOpenDrawer: (i: Ideia) => void;
   onApprove: (i: Ideia) => void;
   onReject: (i: Ideia) => void;
+  onDelete: (i: Ideia) => void;
 }
 
-function IdeiaCard({ ideia, removing, onOpenDrawer, onApprove, onReject }: IdeiaCardProps) {
+function IdeiaCard({ ideia, removing, onOpenDrawer, onApprove, onReject, onDelete }: IdeiaCardProps) {
   const platCfg = PLAT_BADGE[ideia.plataforma] ?? { bg: 'rgba(99,102,241,0.1)', color: '#6366f1' };
   const isIA = ideia.origem === 'ia';
 
@@ -100,9 +101,17 @@ function IdeiaCard({ ideia, removing, onOpenDrawer, onApprove, onReject }: Ideia
             <PencilIcon className="w-2.5 h-2.5" /> Sua ideia
           </span>
         )}
+
+        <button
+          onClick={(e) => { e.stopPropagation(); onDelete(ideia); }}
+          className="p-1 rounded-md text-muted-foreground hover:text-red-600 hover:bg-red-50 transition-colors"
+          title="Excluir ideia"
+        >
+          <Trash2 className="w-3 h-3" />
+        </button>
       </div>
 
-      {/* Título */}
+      {/* TÃ­tulo */}
       <p className="text-[13px] font-semibold text-foreground leading-snug line-clamp-2">
         {ideia.assunto_tema}
       </p>
@@ -121,7 +130,7 @@ function IdeiaCard({ ideia, removing, onOpenDrawer, onApprove, onReject }: Ideia
         </p>
       )}
 
-      {/* Botões — stopPropagation para não abrir o drawer */}
+      {/* BotÃµes â stopPropagation para nÃ£o abrir o drawer */}
       <div className="flex gap-2 pt-1" onClick={e => e.stopPropagation()}>
         <button
           onClick={() => onReject(ideia)}
@@ -140,9 +149,9 @@ function IdeiaCard({ ideia, removing, onOpenDrawer, onApprove, onReject }: Ideia
   );
 }
 
-/* ══════════════════════════════════════════════
+/* ââââââââââââââââââââââââââââââââââââââââââââââ
    StagedCard
-══════════════════════════════════════════════ */
+ââââââââââââââââââââââââââââââââââââââââââââââ */
 interface StagedCardProps {
   item: PublicacaoStaged;
   onApprove: (i: PublicacaoStaged) => void;
@@ -200,7 +209,7 @@ function StagedCard({ item, onApprove, onReject, onConclude, onViewMedia, onOpen
         <button onClick={e => { e.stopPropagation(); onViewMedia(item.url_video!, 'video'); }}
           className="w-full h-16 rounded-lg bg-black/50 flex items-center justify-center border border-border/50 gap-2 hover:bg-black/70 transition-colors">
           <Play className="w-5 h-5 text-white" />
-          <span className="text-xs text-white/70">Assistir vídeo</span>
+          <span className="text-xs text-white/70">Assistir vÃ­deo</span>
         </button>
       )}
 
@@ -257,19 +266,20 @@ function StagedCard({ item, onApprove, onReject, onConclude, onViewMedia, onOpen
   );
 }
 
-/* ══════════════════════════════════════════════
-   IdeiaDrawer — lateral 480px
-══════════════════════════════════════════════ */
+/* ââââââââââââââââââââââââââââââââââââââââââââââ
+   IdeiaDrawer â lateral 480px
+ââââââââââââââââââââââââââââââââââââââââââââââ */
 interface DrawerProps {
   ideia: Ideia | null;
   open: boolean;
   onClose: () => void;
   onApprove: (i: Ideia) => void;
   onReject: (i: Ideia) => void;
+  onDelete: (i: Ideia) => void;
   onSaved: (updated: Ideia) => void;
 }
 
-function IdeiaDrawer({ ideia, open, onClose, onApprove, onReject, onSaved }: DrawerProps) {
+function IdeiaDrawer({ ideia, open, onClose, onApprove, onReject, onDelete, onSaved }: DrawerProps) {
   const { toast } = useToast();
   const [form, setForm] = useState({ assunto_tema: '', roteiro: '', observacoes: '', data_postagem: '' });
   const [saving, setSaving] = useState(false);
@@ -297,7 +307,7 @@ function IdeiaDrawer({ ideia, open, onClose, onApprove, onReject, onSaved }: Dra
     const { error } = await updateIdeia(ideia.id, payload as any);
     setSaving(false);
     if (error) { toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' }); return; }
-    toast({ title: 'Alterações salvas!' });
+    toast({ title: 'AlteraÃ§Ãµes salvas!' });
     onSaved({ ...ideia, ...payload });
   };
 
@@ -345,9 +355,9 @@ function IdeiaDrawer({ ideia, open, onClose, onApprove, onReject, onSaved }: Dra
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-5 space-y-5">
-          {/* Título */}
+          {/* TÃ­tulo */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Título</Label>
+            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">TÃ­tulo</Label>
             <Input
               value={form.assunto_tema}
               onChange={e => setForm(f => ({ ...f, assunto_tema: e.target.value }))}
@@ -369,16 +379,16 @@ function IdeiaDrawer({ ideia, open, onClose, onApprove, onReject, onSaved }: Dra
             />
           </div>
 
-          {/* Observações */}
+          {/* ObservaÃ§Ãµes */}
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-              <Layers className="w-3.5 h-3.5" /> Observações para a IA
+              <Layers className="w-3.5 h-3.5" /> ObservaÃ§Ãµes para a IA
             </Label>
             <Textarea
               value={form.observacoes}
               onChange={e => setForm(f => ({ ...f, observacoes: e.target.value }))}
               rows={3}
-              placeholder="Instruções extras para o próximo roteiro..."
+              placeholder="InstruÃ§Ãµes extras para o prÃ³ximo roteiro..."
               className="text-sm resize-none"
             />
           </div>
@@ -401,7 +411,7 @@ function IdeiaDrawer({ ideia, open, onClose, onApprove, onReject, onSaved }: Dra
         <div className="px-5 py-4 border-t border-border shrink-0 space-y-2">
           <Button className="w-full h-8 text-sm" onClick={handleSave} disabled={saving}>
             {saving && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />}
-            Salvar alterações
+            Salvar alteraÃ§Ãµes
           </Button>
           <div className="flex gap-2">
             <button
@@ -417,15 +427,21 @@ function IdeiaDrawer({ ideia, open, onClose, onApprove, onReject, onSaved }: Dra
               <Check className="w-3 h-3" /> Aprovar
             </button>
           </div>
+          <button
+            onClick={() => { onDelete(ideia); onClose(); }}
+            className="w-full h-8 rounded-lg text-[12px] font-medium text-red-600 hover:bg-red-50 transition-colors flex items-center justify-center gap-1"
+          >
+            <Trash2 className="w-3 h-3" /> Excluir ideia
+          </button>
         </div>
       </aside>
     </>
   );
 }
 
-/* ══════════════════════════════════════════════
+/* ââââââââââââââââââââââââââââââââââââââââââââââ
    Main page
-══════════════════════════════════════════════ */
+ââââââââââââââââââââââââââââââââââââââââââââââ */
 const IdeiasPage = () => {
   const { toast } = useToast();
 
@@ -439,7 +455,7 @@ const IdeiasPage = () => {
   const [drawerIdeia, setDrawerIdeia]   = useState<Ideia | null>(null);
   const [drawerOpen, setDrawerOpen]     = useState(false);
 
-  /* roteiro drawer (legado — para ideias aprovadas) */
+  /* roteiro drawer (legado â para ideias aprovadas) */
   const [roteiroIdeia, setRoteiroIdeia] = useState<Ideia | null>(null);
   const [roteiroOpen, setRoteiroOpen]   = useState(false);
 
@@ -448,16 +464,19 @@ const IdeiasPage = () => {
   const [mediaType, setMediaType] = useState<'video' | 'image'>('image');
   const [mediaOpen, setMediaOpen] = useState(false);
 
-  /* modal rejeição */
+  /* modal rejeiÃ§Ã£o */
   const [rejectTarget, setRejectTarget] = useState<Ideia | PublicacaoStaged | null>(null);
   const [rejectMotivo, setRejectMotivo] = useState('');
   const [rejecting, setRejecting]       = useState(false);
   const rejectIsIdeia = rejectTarget && 'assunto_tema' in rejectTarget;
 
-  /* modal aprovação */
+  /* modal aprovaÃ§Ã£o */
   const [approveTarget, setApproveTarget] = useState<Ideia | null>(null);
   const [approveDate, setApproveDate]     = useState('');
   const [approving, setApproving]         = useState(false);
+
+  const [deleteTarget, setDeleteTarget] = useState<Ideia | null>(null);
+  const [deleting, setDeleting]         = useState(false);
 
   /* modal nova ideia */
   const [newOpen, setNewOpen]   = useState(false);
@@ -472,7 +491,7 @@ const IdeiasPage = () => {
   const [stagedDate, setStagedDate]             = useState('');
   const [savingDate, setSavingDate]             = useState(false);
 
-  /* ── fetch ── */
+  /* ââ fetch ââ */
   const fetchAll = useCallback(async () => {
     const [{ data: id }, { data: st }] = await Promise.all([
       supabase.from('ideias').select('*').eq('status', 'Em andamento').order('created_at', { ascending: false }),
@@ -485,7 +504,7 @@ const IdeiasPage = () => {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  /* ── helpers ── */
+  /* ââ helpers ââ */
   const viewMedia = (url: string, type: 'video' | 'image') => {
     setMediaUrl(url); setMediaType(type); setMediaOpen(true);
   };
@@ -498,13 +517,13 @@ const IdeiasPage = () => {
     }, 300);
   };
 
-  /* ── open approve modal ── */
+  /* ââ open approve modal ââ */
   const openApprove = (i: Ideia) => {
     setApproveTarget(i);
     setApproveDate(i.data_postagem?.split('T')[0] ?? datePlus(3));
   };
 
-  /* ── confirm approve ── */
+  /* ââ confirm approve ââ */
   const confirmApprove = async () => {
     if (!approveTarget) return;
     setApproving(true);
@@ -512,16 +531,16 @@ const IdeiasPage = () => {
     setApproving(false);
     setApproveTarget(null);
     removeIdeia(approveTarget.id);
-    toast({ title: 'Ideia aprovada!', description: 'Aguardando upload do vídeo.' });
+    toast({ title: 'Ideia aprovada!', description: 'Aguardando upload do vÃ­deo.' });
   };
 
-  /* ── open reject modal ── */
+  /* ââ open reject modal ââ */
   const openReject = (target: Ideia | PublicacaoStaged) => {
     setRejectTarget(target);
     setRejectMotivo('');
   };
 
-  /* ── confirm reject ── */
+  /* ââ confirm reject ââ */
   const confirmReject = async () => {
     if (!rejectTarget || !rejectMotivo.trim()) return;
     setRejecting(true);
@@ -543,7 +562,23 @@ const IdeiasPage = () => {
     toast({ title: 'Ideia rejeitada e salva.' });
   };
 
-  /* ── criar nova ideia manual ── */
+  const openDelete = (i: Ideia) => setDeleteTarget(i);
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    const { error } = await supabase.from('ideias').delete().eq('id', deleteTarget.id);
+    setDeleting(false);
+    if (error) {
+      toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' });
+      return;
+    }
+    removeIdeia(deleteTarget.id);
+    setDeleteTarget(null);
+    toast({ title: 'Ideia removida do banco.' });
+  };
+
+  /* ââ criar nova ideia manual ââ */
   const handleCreateNew = async (e: React.FormEvent) => {
     e.preventDefault();
     setNewSaving(true);
@@ -592,11 +627,11 @@ const IdeiasPage = () => {
     }, 5000);
   };
 
-  /* ── staged actions ── */
+  /* ââ staged actions ââ */
   const approveStaged = async (item: PublicacaoStaged) => {
     await supabase.from('publicacoes_staged').update({ status: 'Aprovado' }).eq('id', item.id);
     setStaged(prev => prev.map(x => x.id === item.id ? { ...x, status: 'Aprovado' as PublicacaoStaged['status'] } : x));
-    toast({ title: 'Publicação aprovada!' });
+    toast({ title: 'PublicaÃ§Ã£o aprovada!' });
   };
 
   const concludeStaged = async (item: PublicacaoStaged) => {
@@ -615,7 +650,7 @@ const IdeiasPage = () => {
     if (error) { toast({ title: 'Erro ao mover para posts', description: error.message, variant: 'destructive' }); return; }
     await supabase.from('publicacoes_staged').delete().eq('id', item.id);
     setStaged(prev => prev.filter(x => x.id !== item.id));
-    toast({ title: 'Publicação concluída!', description: 'Movida para Posts.' });
+    toast({ title: 'PublicaÃ§Ã£o concluÃ­da!', description: 'Movida para Posts.' });
   };
 
   const openStagedDetail = (item: PublicacaoStaged) => {
@@ -666,10 +701,11 @@ const IdeiasPage = () => {
         onClose={() => setDrawerOpen(false)}
         onApprove={openApprove}
         onReject={openReject}
+        onDelete={openDelete}
         onSaved={updated => setIdeias(prev => prev.map(x => x.id === updated.id ? updated : x))}
       />
 
-      {/* ── Modal rejeição ── */}
+      {/* ââ Modal rejeiÃ§Ã£o ââ */}
       <Dialog open={!!rejectTarget} onOpenChange={o => { if (!o) setRejectTarget(null); }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
@@ -683,11 +719,11 @@ const IdeiasPage = () => {
             </p>
           )}
           <div className="space-y-3">
-            <Label className="text-sm">Motivo da rejeição <span className="text-destructive">*</span></Label>
+            <Label className="text-sm">Motivo da rejeiÃ§Ã£o <span className="text-destructive">*</span></Label>
             <Textarea
               value={rejectMotivo}
               onChange={e => setRejectMotivo(e.target.value)}
-              placeholder="Ex: tom muito genérico, já fizemos algo parecido..."
+              placeholder="Ex: tom muito genÃ©rico, jÃ¡ fizemos algo parecido..."
               rows={3}
               autoFocus
             />
@@ -706,7 +742,7 @@ const IdeiasPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* ── Modal aprovação ── */}
+      {/* ââ Modal aprovaÃ§Ã£o ââ */}
       <Dialog open={!!approveTarget} onOpenChange={o => { if (!o) setApproveTarget(null); }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
@@ -745,7 +781,33 @@ const IdeiasPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* ── Modal nova ideia ── */}
+      <Dialog open={!!deleteTarget} onOpenChange={o => { if (!o) setDeleteTarget(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="w-4 h-4" /> Excluir ideia
+            </DialogTitle>
+          </DialogHeader>
+          {deleteTarget && (
+            <p className="text-xs text-muted-foreground -mt-2 line-clamp-2">
+              "{deleteTarget.assunto_tema}"
+            </p>
+          )}
+          <p className="text-sm text-muted-foreground">Tem certeza? A ideia sera removida permanentemente do banco de dados.</p>
+          <div className="flex gap-2">
+            <Button variant="outline" className="flex-1" onClick={() => setDeleteTarget(null)}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" className="flex-1"
+              disabled={deleting} onClick={confirmDelete}>
+              {deleting && <Loader2 className="w-3 h-3 animate-spin mr-1" />}
+              Excluir
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ââ Modal nova ideia ââ */}
       <Dialog open={newOpen} onOpenChange={setNewOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -795,17 +857,17 @@ const IdeiasPage = () => {
                 value={newForm.assunto_tema}
                 onChange={e => setNewForm(f => ({ ...f, assunto_tema: e.target.value }))}
                 required
-                placeholder="Sobre o que é esse conteúdo?"
+                placeholder="Sobre o que Ã© esse conteÃºdo?"
                 rows={2}
               />
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-sm">Observações para IA</Label>
+              <Label className="text-sm">ObservaÃ§Ãµes para IA</Label>
               <Textarea
                 value={newForm.observacoes}
                 onChange={e => setNewForm(f => ({ ...f, observacoes: e.target.value }))}
-                placeholder="Instruções extras para gerar o roteiro..."
+                placeholder="InstruÃ§Ãµes extras para gerar o roteiro..."
                 rows={2}
               />
             </div>
@@ -832,7 +894,7 @@ const IdeiasPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* ── Staged detail drawer ── */}
+      {/* ââ Staged detail drawer ââ */}
       {stagedDetailOpen && stagedDetail && (
         <>
           <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" onClick={() => setStagedDetailOpen(false)} />
@@ -871,7 +933,7 @@ const IdeiasPage = () => {
               {stagedDetail.conteudo_gerado && (
                 <div className="space-y-2">
                   <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-                    <AlignLeft className="w-3.5 h-3.5" /> Conteúdo Gerado
+                    <AlignLeft className="w-3.5 h-3.5" /> ConteÃºdo Gerado
                   </Label>
                   <div className="bg-muted/40 rounded-lg p-3.5 text-[13px] text-foreground leading-relaxed whitespace-pre-wrap border border-border/50">
                     {stagedDetail.conteudo_gerado}
@@ -902,11 +964,11 @@ const IdeiasPage = () => {
               )}
               {stagedDetail.url_video && (
                 <div className="space-y-2">
-                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Vídeo</Label>
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">VÃ­deo</Label>
                   <button onClick={() => viewMedia(stagedDetail.url_video!, 'video')}
                     className="w-full h-20 rounded-lg bg-black/50 flex items-center justify-center border border-border/50 gap-2 hover:bg-black/70 transition-colors">
                     <Play className="w-6 h-6 text-white" />
-                    <span className="text-sm text-white/70">Assistir vídeo</span>
+                    <span className="text-sm text-white/70">Assistir vÃ­deo</span>
                   </button>
                 </div>
               )}
@@ -914,7 +976,7 @@ const IdeiasPage = () => {
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/8 border border-destructive/20">
                   <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-xs font-semibold text-destructive mb-0.5">Motivo da Rejeição</p>
+                    <p className="text-xs font-semibold text-destructive mb-0.5">Motivo da RejeiÃ§Ã£o</p>
                     <p className="text-xs text-destructive/80">{stagedDetail.motivo_rejeicao}</p>
                   </div>
                 </div>
@@ -962,14 +1024,14 @@ const IdeiasPage = () => {
         </>
       )}
 
-      {/* ══ PAGE ══ */}
+      {/* ââ PAGE ââ */}
       <div className="space-y-5">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-xl font-bold text-foreground">Ideias de Conteúdo</h1>
+            <h1 className="text-xl font-bold text-foreground">Ideias de ConteÃºdo</h1>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {pendingCount} {pendingCount === 1 ? 'ideia aguardando' : 'ideias aguardando'} validação
+              {pendingCount} {pendingCount === 1 ? 'ideia aguardando' : 'ideias aguardando'} validaÃ§Ã£o
             </p>
           </div>
           <Button size="sm" className="gap-1.5 h-8" onClick={() => setNewOpen(true)}>
@@ -989,7 +1051,7 @@ const IdeiasPage = () => {
               )}
             </TabsTrigger>
             <TabsTrigger value="publicacoes" className="text-xs h-7 px-3">
-              Publicações
+              PublicaÃ§Ãµes
               {staged.length > 0 && (
                 <span className="ml-1.5 min-w-[16px] h-4 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center px-1">
                   {staged.length}
@@ -998,7 +1060,7 @@ const IdeiasPage = () => {
             </TabsTrigger>
           </TabsList>
 
-          {/* ── IDEIAS TAB ── */}
+          {/* ââ IDEIAS TAB ââ */}
           <TabsContent value="ideias" className="mt-4 space-y-4">
             {/* N8N status bar */}
             <N8nStatusBar />
@@ -1023,8 +1085,8 @@ const IdeiasPage = () => {
             {ideias.length === 0 && !pendingRoteiro ? (
               <div className="h-48 flex flex-col items-center justify-center border border-dashed border-border/50 rounded-xl gap-2">
                 <FileText className="w-6 h-6 text-muted-foreground/40" />
-                <p className="text-sm text-muted-foreground">Nenhuma ideia aguardando validação</p>
-                <p className="text-xs text-muted-foreground">O N8N gerará novas ideias às 08:00 ou crie uma manualmente</p>
+                <p className="text-sm text-muted-foreground">Nenhuma ideia aguardando validaÃ§Ã£o</p>
+                <p className="text-xs text-muted-foreground">O N8N gerarÃ¡ novas ideias Ã s 08:00 ou crie uma manualmente</p>
               </div>
             ) : (
               <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
@@ -1036,22 +1098,23 @@ const IdeiasPage = () => {
                     onOpenDrawer={i => { setDrawerIdeia(i); setDrawerOpen(true); }}
                     onApprove={openApprove}
                     onReject={openReject}
+                    onDelete={openDelete}
                   />
                 ))}
               </div>
             )}
           </TabsContent>
 
-          {/* ── PUBLICAÇÕES TAB ── */}
+          {/* ââ PUBLICAÃÃES TAB ââ */}
           <TabsContent value="publicacoes" className="mt-4">
             <div className="space-y-4">
               <p className="text-xs text-muted-foreground">
-                Publicações geradas pelo N8N aguardando validação antes de ir para Posts.
+                PublicaÃ§Ãµes geradas pelo N8N aguardando validaÃ§Ã£o antes de ir para Posts.
               </p>
               {staged.length === 0 ? (
                 <div className="h-40 flex flex-col items-center justify-center border border-dashed border-border/50 rounded-xl gap-2">
                   <FileText className="w-6 h-6 text-muted-foreground/40" />
-                  <p className="text-sm text-muted-foreground">Nenhuma publicação em fila</p>
+                  <p className="text-sm text-muted-foreground">Nenhuma publicaÃ§Ã£o em fila</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1081,7 +1144,7 @@ const IdeiasPage = () => {
                           ))}
                           {items.length === 0 && (
                             <div className="h-24 flex items-center justify-center border border-dashed border-border/50 rounded-xl">
-                              <p className="text-xs text-muted-foreground">Nenhuma publicação</p>
+                              <p className="text-xs text-muted-foreground">Nenhuma publicaÃ§Ã£o</p>
                             </div>
                           )}
                         </div>
